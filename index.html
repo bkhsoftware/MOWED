@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!--
+ MOWED - Reforestation Optimization Tool
+ Copyright (c) 2024 Björn Kenneth Holmström
+ Licensed under a custom license - see LICENSE file for details.
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOWED - Reforestation Optimization</title>
+    <link rel="stylesheet" href="style.min.css">
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.2/full/pyodide.js"></script>
+</head>
+<body>
+    <h1>MOWED - Reforestation Optimization</h1>
+    <button id="load-example">Load Example Template</button>
+    <button id="show-help">Help</button>
+    <form id="optimization-form">
+        <label for="budget">Budget:</label>
+        <input type="number" id="budget" name="budget" required>
+        
+        <label for="land-area">Land Area:</label>
+        <input type="number" id="land-area" name="land-area" required>
+        
+        <div id="species-inputs">
+            <h2>Tree Species</h2>
+        </div>
+        
+        <button type="button" id="add-species">Add Species</button>
+        <button type="submit">Optimize</button>
+    </form>
+    
+    <div id="results"></div>
+    <div id="loading" style="display:none;">Optimizing...</div>
+
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Help: Understanding the Results</h2>
+            <h3>Objective Value</h3>
+            <p>The objective value represents the overall score of the optimization. It combines the total carbon sequestration and biodiversity scores.</p>
+            
+            <h3>Tree Counts</h3>
+            <p>This shows the optimal number of trees to plant for each species to maximize the objective value while staying within budget and land area constraints.</p>
+            
+            <h3>Impact</h3>
+            <ul>
+                <li><strong>Total Carbon Sequestration:</strong> The total amount of carbon that will be sequestered by the optimized forest plan. Higher values indicate greater climate change mitigation.</li>
+                <li><strong>Total Biodiversity Score:</strong> A measure of the forest's contribution to biodiversity. Higher scores suggest a more diverse and ecologically robust forest.</li>
+                <li><strong>Total Cost:</strong> The total financial cost of implementing the optimized forest plan. This should always be less than or equal to your input budget.</li>
+                <li><strong>Total Area Used:</strong> The total land area that will be used by the optimized forest plan. This should always be less than or equal to your input land area.</li>
+            </ul>
+            
+            <h3>Interpreting the Results</h3>
+            <p>The optimization aims to maximize carbon sequestration and biodiversity while respecting your budget and land constraints. If you see zero trees for some species, it means that planting those species would not contribute optimally to your goals given the constraints.</p>
+            
+            <p>Remember, this is a simplified model. In real-world reforestation projects, many other factors (like soil types, local climate, and ecological interactions) would also need to be considered.</p>
+        </div>
+    </div>
+
+    <script src="app.min.js"></script>
+</body>
+</html>
