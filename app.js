@@ -208,65 +208,92 @@ def optimize_reforestation(total_budget, land_area, years, species_data,
 
     bounds = [(0, None) for _ in range(years * n_species)]
     
-    best_result = None
-    best_value = float('inf')
+    # Adjust initial guess to respect land area constraint and encourage even distribution
+    total_trees = land_area / np.mean([species_data[s]['area'] for s in species_data])
+    initial_guess = np.ones(years * n_species) * total_trees / (years * n_species)
     
-    for start in range(n_starts):
-        debug_print(f"Start {start + 1}/{n_starts}")
-        
-        # Generate initial guess that respects minimum budget utilization
-        total_trees = min_budget_utilization * total_budget / np.mean(species_costs)
-        initial_guess = np.random.dirichlet(np.ones(years * n_species)) * total_trees
-        
-        # Adjust for land area constraint
-        land_usage = np.sum(initial_guess.reshape(years, n_species) * species_areas)
-        if land_usage > land_area:
-            initial_guess *= land_area / land_usage
-        
-        debug_print("Checking initial guess:")
+    # Adjust for land area constraint
+    #land_usage = np.sum(initial_guess.reshape(years, n_species) * species_areas)
+    #if land_usage > land_area:
+    #    initial_guess *= land_area / land_usage
+    
+    debug_print("Checking initial guess:")
+    for i, constraint in enumerate(constraints):
+        constraint_value = constraint['fun'](initial_guess)
+        debug_print(f"Constraint {i}: {constraint_value}")
+        if constraint['type'] == 'ineq' and np.any(constraint_value < 0):
+            debug_print(f"Initial guess violates constraint {i}")
+    
+    def callback(xk):
+        debug_print(f"Iteration {callback.count}:")
         for i, constraint in enumerate(constraints):
-            constraint_value = constraint['fun'](initial_guess)
+            constraint_value = constraint['fun'](xk)
             debug_print(f"Constraint {i}: {constraint_value}")
-            if constraint['type'] == 'ineq' and np.any(constraint_value < 0):
-                debug_print(f"Initial guess violates constraint {i}")
-        
-        def callback(xk):
-            debug_print(f"Iteration {callback.count}:")
-            for i, constraint in enumerate(constraints):
-                constraint_value = constraint['fun'](xk)
-                debug_print(f"Constraint {i}: {constraint_value}")
-            callback.count += 1
-        callback.count = 0
+        callback.count += 1
+    callback.count = 0
 
-        if solver == 'SLSQP':
-            result = minimize(objective, initial_guess, method='SLSQP', bounds=bounds, constraints=constraints, 
-                              options={'maxiter': int(max_iterations), 'ftol': function_tolerance})
-        elif solver == 'COBYLA':
-            result = minimize(objective, initial_guess, method='COBYLA', constraints=constraints, 
-                              options={'maxiter': int(max_iterations), 'tol': function_tolerance})
-        else:
-            raise ValueError(f"Unsupported solver: {solver}")
-        
-        debug_print(f"Optimization result: {result.success}, message: {result.message}")
-        debug_print(f"Objective value: {result.fun}")
-        
-        if result.success and result.fun < best_value:
-            best_result = result
-            best_value = result.fun
+    if solver == 'SLSQP':
+        result = minimize(objective, initial_guess, method='SLSQP', bounds=bounds, constraints=constraints, 
+                          options={'maxiter': int(max_iterations), 'ftol': function_tolerance})
+    elif solver == 'COBYLA':
+        result = minimize(objective, initial_guess, method='COBYLA', constraints=constraints, 
+                          options={'maxiter': int(max_iterations), 'tol': function_tolerance})
+    else:
+        raise ValueError(f"Unsupported solver: {solver}")
+    
+    debug_print(f"Optimization result: {result.success}, message: {result.message}")
+    debug_print(f"Objective value: {result.fun}")
 
-    if best_result is None or not best_result.success:
+    if result is None or result.success:
         debug_print(f"Warning: Optimization failed. No valid solution found.")
         return None, None, False, "Optimization failed", debug_output.getvalue() if debug else ""
 
     tree_counts = {}
-    x = best_result.x.reshape((years, n_species))
+    x = result.x.reshape((years, n_species))
     for year in range(years):
         tree_counts[year] = {s: int(round(x[year, i])) for i, s in enumerate(species_data)}
     
     debug_print("Final tree counts:")
     debug_print(tree_counts)
     
-    return tree_counts, -best_result.fun, best_result.success, best_result.message, debug_output.getvalue() if debug else ""
+    return tree_counts, -result.fun, result.success, result.message, debug_output.getvalue() if debug else ""
+
+def calculate_impact(tree_counts, species_data, years, use_soil_quality=False, soil_quality='medium', use_climate_zone=False, climate_zone='temperate', use_elevation=False, elevation=0, use_annual_rainfall=False, annual_rainfall=1000, discount_rate=0.05):
+    impact = {year: {} for year in range(years)}
+    cumulative_impact = {'carbon': 0, 'biodiversity': 0, 'cost': 0, 'area': 0}
+    
+    for plant_year in range(years):
+        for s, count in tree_counts[plant_year].items():
+            species = species_data[s]
+            for year in range(plant_year, years):
+                age = year - plant_year
+                size = tree_growth(age, species['max_size'], species['growth_rate'], 
+                                   use_soil_quality, soil_quality,
+                                   use_climate_zone, climate_zone,
+                                   use_elevation, elevation, species['optimal_elevation'],
+                                   use_annual_rainfall, annual_rainfall, species['optimal_rainfall'])
+                carbon = carbon_sequestration(size, 
+                                              use_climate_zone, climate_zone,
+                                              use_elevation, elevation, species['optimal_elevation'],
+                                              use_annual_rainfall, annual_rainfall, species['optimal_rainfall']) * count
+                biodiversity = species['biodiversity'] * count
+                discount_factor = 1 / ((1 + discount_rate) ** year)
+                
+                impact[year]['carbon'] = impact[year].get('carbon', 0) + carbon * discount_factor
+                impact[year]['biodiversity'] = impact[year].get('biodiversity', 0) + biodiversity * discount_factor
+                
+            impact[plant_year]['cost'] = impact[plant_year].get('cost', 0) + count * species['cost']
+            impact[plant_year]['area'] = impact[plant_year].get('area', 0) + count * species['area']
+    
+    for year in range(years):
+        for key in ['carbon', 'biodiversity', 'cost', 'area']:
+            impact[year][key] = float(impact[year].get(key, 0))
+            if key != 'area':
+                cumulative_impact[key] += impact[year][key]
+            else:
+                cumulative_impact[key] = max(cumulative_impact[key], impact[year][key])
+    
+    return impact, {k: float(v) for k, v in cumulative_impact.items()}
 
 def run_optimization(budget, land_area, years, species_data, use_soil_quality, soil_quality, use_climate_zone, climate_zone, use_elevation, elevation, use_annual_rainfall, annual_rainfall, max_iterations, function_tolerance, min_budget_utilization, species_diversity_factor, debug=False, n_starts=5, solver='SLSQP'):
     # Convert inputs to appropriate types
@@ -683,7 +710,6 @@ async function handleFormSubmit(e) {
         elevation: parseFloat(document.getElementById('elevation').value),
         useAnnualRainfall: document.getElementById('use-annual-rainfall').checked,
         annualRainfall: parseFloat(document.getElementById('annual-rainfall').value),
-        // Add more environmental factors here as they are implemented
         debug: document.getElementById('debug-mode').checked,
         solver: document.getElementById('solver').value
     };
@@ -693,19 +719,16 @@ async function handleFormSubmit(e) {
         console.log("Full optimization result:", result);
         console.log("Debug output:", result.debug_output);
 
-        if (result.success === false) {
-            displayWarning(result.message || "Optimization failed");
-            resultsDiv.innerHTML += `<p>Computation time: ${result.computation_time.toFixed(2)} seconds</p>`;
-        } else {
-            let feedbackHtml = generateFeedback(result, formData);
-            resultsDiv.innerHTML = feedbackHtml;
-            
-            if (!result.success) {
-                displayWarning(result.quality_message);
-            }
-            
-            displayResults(result.tree_counts, result.objective_value, result.impact, result.cumulative_impact, formData.years);
+        let feedbackHtml = generateFeedback(result, formData);
+        resultsDiv.innerHTML = feedbackHtml;
+
+        if (!result.success) {
+            displayWarning(result.quality_message || "Optimization failed");
         }
+
+        resultsDiv.innerHTML += `<p>Computation time: ${result.computation_time.toFixed(2)} seconds</p>`;
+        
+        displayResults(result.tree_counts, result.objective_value, result.impact, result.cumulative_impact, formData.years);
 
         // Display debug output if debug mode is enabled
         if (formData.debug) {

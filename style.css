@@ -212,6 +212,27 @@ button:hover {
   color: #666;
 }
 
+/* Update the debug-mode-container rule */
+.debug-mode-container {
+    display: flex;
+    align-items: flex-end; /* Changed from center to flex-end */
+    margin-bottom: 10px;
+}
+
+.debug-mode-container label {
+    margin-right: 10px;
+    line-height: 1; /* Add this to remove extra space below text */
+}
+
+/* Update the existing rule for checkboxes */
+input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    vertical-align: bottom; /* Add this to align with text bottom */
+    position: relative;
+    top: -2px; /* Fine-tune vertical position */
+}
+
 .env-factor {
     margin-bottom: 15px;
 }
