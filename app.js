@@ -55,16 +55,28 @@ def climate_factor(climate_zone):
     }
     return factors.get(climate_zone, 1.0)  # Default to 1.0 if climate zone is not recognized
 
-def tree_growth(age, max_size, growth_rate, soil_quality='medium', climate_zone='temperate'):
+def elevation_factor(elevation, species_optimal_elevation):
+    # Adjust this function based on your specific requirements
+    elevation_difference = abs(elevation - species_optimal_elevation)
+    if elevation_difference <= 300:
+        return 1.0
+    elif elevation_difference <= 600:
+        return 0.8
+    else:
+        return 0.6
+
+def tree_growth(age, max_size, growth_rate, soil_quality='medium', climate_zone='temperate', elevation=0, species_optimal_elevation=0):
     soil_factor = {'poor': 0.7, 'medium': 1.0, 'good': 1.3}[soil_quality]
     c_factor = climate_factor(climate_zone)
-    return max_size * (1 - np.exp(-growth_rate * age * soil_factor * c_factor))
+    e_factor = elevation_factor(elevation, species_optimal_elevation)
+    return max_size * (1 - np.exp(-growth_rate * age * soil_factor * c_factor * e_factor))
 
-def carbon_sequestration(size, climate_zone='temperate'):
+def carbon_sequestration(size, climate_zone='temperate', elevation=0, species_optimal_elevation=0):
     c_factor = climate_factor(climate_zone)
-    return 0.5 * size * c_factor  # Adjust carbon sequestration based on climate
+    e_factor = elevation_factor(elevation, species_optimal_elevation)
+    return 0.5 * size * c_factor * e_factor
 
-def optimize_reforestation(total_budget, land_area, years, species_data, soil_quality='medium', climate_zone='temperate', discount_rate=0.05, max_iterations=2000, function_tolerance=1e-8, min_budget_utilization=0.6, species_diversity_factor=2):
+def optimize_reforestation(total_budget, land_area, years, species_data, soil_quality='medium', climate_zone='temperate', elevation=0, discount_rate=0.05, max_iterations=2000, function_tolerance=1e-8, min_budget_utilization=0.6, species_diversity_factor=2):
     n_species = len(species_data)
     
     def objective(x):
@@ -76,8 +88,10 @@ def optimize_reforestation(total_budget, land_area, years, species_data, soil_qu
                 for age in range(years - year):
                     size = tree_growth(age, species_data[species]['max_size'], 
                                        species_data[species]['growth_rate'], 
-                                       soil_quality, climate_zone)
-                    carbon = carbon_sequestration(size, climate_zone) * trees_planted
+                                       soil_quality, climate_zone, elevation,
+                                       species_data[species]['optimal_elevation'])
+                    carbon = carbon_sequestration(size, climate_zone, elevation,
+                                                  species_data[species]['optimal_elevation']) * trees_planted
                     biodiversity = species_data[species]['biodiversity'] * trees_planted
                     discount_factor = 1 / ((1 + discount_rate) ** (year + age))
                     # Give more weight to later years
@@ -139,7 +153,7 @@ def optimize_reforestation(total_budget, land_area, years, species_data, soil_qu
     
     return tree_counts, -result.fun, result.success, result.message
 
-def calculate_impact(tree_counts, species_data, years, soil_quality='medium', climate_zone='temperate', discount_rate=0.05):
+def calculate_impact(tree_counts, species_data, years, soil_quality='medium', climate_zone='temperate', elevation=0, discount_rate=0.05):
     impact = {year: {} for year in range(years)}
     cumulative_impact = {'carbon': 0, 'biodiversity': 0, 'cost': 0, 'area': 0}
     
@@ -148,8 +162,11 @@ def calculate_impact(tree_counts, species_data, years, soil_quality='medium', cl
             species = species_data[s]
             for year in range(plant_year, years):
                 age = year - plant_year
-                size = tree_growth(age, species['max_size'], species['growth_rate'], soil_quality, climate_zone)
-                carbon = carbon_sequestration(size, climate_zone) * count
+                size = tree_growth(age, species['max_size'], species['growth_rate'], 
+                                   soil_quality, climate_zone, elevation, 
+                                   species['optimal_elevation'])
+                carbon = carbon_sequestration(size, climate_zone, elevation, 
+                                              species['optimal_elevation']) * count
                 biodiversity = species['biodiversity'] * count
                 discount_factor = 1 / ((1 + discount_rate) ** year)
                 
@@ -197,17 +214,21 @@ def multi_start_optimization(total_budget, land_area, years, species_data, n_sta
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-def run_optimization(budget, land_area, years, species_data, soil_quality, climate_zone, max_iterations, function_tolerance, min_budget_utilization, species_diversity_factor):
+def run_optimization(budget, land_area, years, species_data, soil_quality, climate_zone, elevation, max_iterations, function_tolerance, min_budget_utilization, species_diversity_factor):
     tree_counts, objective_value, success, message, n_starts, formatted_warnings = multi_start_optimization(
         budget, land_area, years, species_data, 
         soil_quality=soil_quality,
         climate_zone=climate_zone,
+        elevation=elevation,
         max_iterations=max_iterations, 
         function_tolerance=function_tolerance, 
         min_budget_utilization=min_budget_utilization, 
         species_diversity_factor=species_diversity_factor
     )
-    impact, cumulative_impact = calculate_impact(tree_counts, species_data, years, soil_quality=soil_quality, climate_zone=climate_zone)
+    impact, cumulative_impact = calculate_impact(tree_counts, species_data, years, 
+                                                 soil_quality=soil_quality, 
+                                                 climate_zone=climate_zone, 
+                                                 elevation=elevation)
     
     # Debug log
     logger.debug(f"Formatted warnings: {formatted_warnings}")
@@ -238,6 +259,7 @@ result = run_optimization(
     ${JSON.stringify(formData.species)},
     '${formData.soilQuality}',
     '${formData.climateZone}',
+    ${formData.elevation},
     ${formData.maxIterations},
     ${formData.functionTolerance},
     ${formData.minBudgetUtilization},
@@ -446,6 +468,7 @@ function addSpeciesInput() {
         <input type="number" step="0.01" placeholder="Biodiversity Score" class="species-biodiversity" required>
         <input type="number" step="0.01" placeholder="Growth Rate" class="species-growth-rate" required>
         <input type="number" step="0.01" placeholder="Max Size" class="species-max-size" required>
+        <input type="number" step="1" placeholder="Optimal Elevation" class="species-optimal-elevation" required>
         <button type="button" class="remove-species">Remove</button>
     `;
     document.getElementById('species-inputs').appendChild(newSpeciesEntry);
@@ -473,12 +496,12 @@ function loadExampleTemplate() {
     document.getElementById('years').value = 5;
 
     // Example species data
-    const exampleSpecies = [
-        { name: "Oak", cost: 15, area: 25, carbon: 7, biodiversity: 8, growthRate: 0.10, maxSize: 100 },
-        { name: "Pine", cost: 10, area: 20, carbon: 6, biodiversity: 6, growthRate: 0.15, maxSize: 80 },
-        { name: "Maple", cost: 18, area: 30, carbon: 8, biodiversity: 7, growthRate: 0.12, maxSize: 90 },
-        { name: "Birch", cost: 12, area: 22, carbon: 5, biodiversity: 7, growthRate: 0.14, maxSize: 70 }
-    ];
+const exampleSpecies = [
+    { name: "Oak", cost: 15, area: 25, carbon: 7, biodiversity: 8, growthRate: 0.10, maxSize: 100, optimalElevation: 300 },
+    { name: "Pine", cost: 10, area: 20, carbon: 6, biodiversity: 6, growthRate: 0.15, maxSize: 80, optimalElevation: 1000 },
+    { name: "Maple", cost: 18, area: 30, carbon: 8, biodiversity: 7, growthRate: 0.12, maxSize: 90, optimalElevation: 500 },
+    { name: "Birch", cost: 12, area: 22, carbon: 5, biodiversity: 7, growthRate: 0.14, maxSize: 70, optimalElevation: 700 }
+];
 
     // Add species inputs and populate with data
     exampleSpecies.forEach(species => {
@@ -491,7 +514,11 @@ function loadExampleTemplate() {
         lastEntry.querySelector('.species-biodiversity').value = species.biodiversity.toFixed(2);
         lastEntry.querySelector('.species-growth-rate').value = species.growthRate.toFixed(2);
         lastEntry.querySelector('.species-max-size').value = species.maxSize.toFixed(2);
+        lastEntry.querySelector('.species-optimal-elevation').value = species.optimalElevation;
     });
+
+    // Set a default elevation in the advanced options
+    document.getElementById('elevation').value = 500;
 }
 
 async function handleFormSubmit(e) {
@@ -511,7 +538,8 @@ async function handleFormSubmit(e) {
             carbon: parseFloat(entry.querySelector('.species-carbon').value),
             biodiversity: parseFloat(entry.querySelector('.species-biodiversity').value),
             growth_rate: parseFloat(entry.querySelector('.species-growth-rate').value),
-            max_size: parseFloat(entry.querySelector('.species-max-size').value)
+            max_size: parseFloat(entry.querySelector('.species-max-size').value),
+            optimal_elevation: parseFloat(entry.querySelector('.species-optimal-elevation').value)
         };
     });
 
@@ -520,12 +548,14 @@ async function handleFormSubmit(e) {
         landArea: parseFloat(document.getElementById('land-area').value),
         years: parseInt(document.getElementById('years').value),
         species: species,
+        elevation: parseFloat(document.getElementById('elevation').value),
         maxIterations: parseInt(document.getElementById('max-iterations').value),
         functionTolerance: parseFloat(document.getElementById('function-tolerance').value),
         minBudgetUtilization: parseFloat(document.getElementById('min-budget-utilization').value) / 100,
         speciesDiversityFactor: parseFloat(document.getElementById('species-diversity-factor').value),
         soilQuality: document.getElementById('soil-quality').value,
         climateZone: document.getElementById('climate-zone').value,
+        elevation: parseFloat(document.getElementById('elevation').value),
         // Add more environmental factors here as they are implemented
     };
 
