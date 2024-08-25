@@ -173,11 +173,11 @@ def optimize_reforestation(total_budget, land_area, years, species_data,
 
     def constraint_budget(x):
         x = x.reshape((years, n_species))
-        return total_budget - np.sum(x * [species_data[s]['cost'] for s in species_data])
+        return total_budget - np.sum(x * species_costs)
     
     def constraint_land(x):
         x = x.reshape((years, n_species))
-        total_area = np.sum(x * [species_data[s]['area'] for s in species_data])
+        total_area = np.sum(x * species_areas)
         return land_area - total_area
     
     def constraint_min_planting(x):
@@ -187,7 +187,7 @@ def optimize_reforestation(total_budget, land_area, years, species_data,
     
     def constraint_min_budget(x):
         x = x.reshape((years, n_species))
-        return np.sum(x * [species_data[s]['cost'] for s in species_data]) - min_budget_utilization * total_budget
+        return np.sum(x * species_costs) - min_budget_utilization * total_budget
 
     def constraint_species_diversity(x):
         x = x.reshape((years, n_species))
