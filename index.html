@@ -9,28 +9,48 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MOWED - Reforestation Optimization</title>
-    <link rel="stylesheet" href="style.min.css">
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.2/full/pyodide.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <h1>MOWED - Reforestation Optimization</h1>
+    
     <button id="load-example">Load Example Template</button>
     <button id="show-help">Help</button>
+    <div id="advanced-options" style="display: none;">
+        <h3>Advanced Options</h3>
+        <label for="max-iterations">Maximum Iterations:</label>
+        <input type="number" id="max-iterations" value="2000" min="100" max="10000">
+      
+        <label for="function-tolerance">Function Tolerance:</label>
+        <input type="number" id="function-tolerance" value="1e-8" step="1e-9" min="1e-12" max="1e-4">
+      
+        <label for="min-budget-utilization">Minimum Budget Utilization (%):</label>
+        <input type="number" id="min-budget-utilization" value="60" min="0" max="100">
+      
+        <label for="species-diversity-factor">Species Diversity Factor:</label>
+        <input type="number" id="species-diversity-factor" value="2" min="1" max="10" step="0.1">
+    </div>
+
+    <button id="toggle-advanced">Show Advanced Options</button>
     <form id="optimization-form">
-        <label for="budget">Budget:</label>
-        <input type="number" id="budget" name="budget" required>
-        
-        <label for="land-area">Land Area:</label>
-        <input type="number" id="land-area" name="land-area" required>
-        
+        <label for="budget">Total Budget:</label>
+        <input type="number" id="budget" required>
+
+        <label for="land-area">Total Land Area:</label>
+        <input type="number" id="land-area" required>
+
+        <label for="years">Number of Years:</label>
+        <input type="number" id="years" min="1" max="50" value="1" required>
+
+
         <div id="species-inputs">
             <h2>Tree Species</h2>
         </div>
-        
+
         <button type="button" id="add-species">Add Species</button>
         <button type="submit">Optimize</button>
     </form>
-    
+
     <div id="results"></div>
     <div id="loading" style="display:none;">Optimizing...</div>
 
@@ -59,6 +79,7 @@
         </div>
     </div>
 
-    <script src="app.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.22.1/full/pyodide.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>

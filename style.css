@@ -1,0 +1,204 @@
+/*
+ * MOWED - Reforestation Optimization Tool
+ * Copyright (c) 2024 Björn Kenneth Holmström
+ * Licensed under a custom license - see LICENSE file for details.
+ */
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+h1, h2 {
+    color: #333;
+}
+
+form {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-top: 10px;
+}
+
+input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    box-sizing: border-box;
+}
+
+button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-top: 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+#load-example {
+    background-color: #008CBA;
+    margin-bottom: 20px;
+}
+
+#load-example:hover {
+    background-color: #007B9A;
+}
+
+#advanced-options {
+    display: none;
+}
+
+.species-entry {
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 5px;
+}
+
+.species-entry input {
+    width: calc(20% - 10px);
+    margin-right: 10px;
+}
+
+.remove-species {
+    width: auto;
+    padding: 5px 10px;
+    background-color: #f44336;
+}
+
+#results {
+    background-color: #f4f4f4;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+#loading {
+    text-align: center;
+    font-weight: bold;
+    margin-top: 20px;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#load-example, #show-help {
+    display: inline-block;
+    width: auto;
+    padding: 10px 20px;
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+#show-help {
+    background-color: #f4a742;
+    margin-left: 10px;
+}
+
+#show-help:hover {
+    background-color: #e59732;
+}
+
+#load-example {
+    background-color: #008CBA;
+}
+
+#load-example:hover {
+    background-color: #007B9A;
+}
+
+#show-help {
+    background-color: #f4a742;
+}
+
+#show-help:hover {
+    background-color: #e59732;
+}
+
+#years {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    box-sizing: border-box;
+}
+
+.species-entry input[type="number"] {
+    width: calc(16.66% - 10px);
+}
+
+.quality-message {
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    background-color: #f0f0f0;
+    border: 1px solid #d0d0d0;
+    font-style: italic;
+}
+
+@media screen and (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+
+    input, button {
+        font-size: 16px; /* Prevents zoom on input focus on iOS */
+    }
+
+    .species-entry input {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+    .species-entry input[type="number"] {
+        width: 100%;
+    }
+
+    #load-example, #show-help {
+        width: 100%;
+        margin-left: 0;
+        margin-bottom: 10px;
+    }
+}

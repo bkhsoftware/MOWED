@@ -7,6 +7,7 @@ Features
 - Input budget and land area constraints
 - Add multiple tree species with individual characteristics
 - Optimize for carbon sequestration and biodiversity
+- Multi year planning
 - View detailed results including tree counts and environmental impact
 - Mobile-friendly interface
 
@@ -51,9 +52,9 @@ Acknowledgments
 
 Future Plans
 
-- Implement data visualization for results
-- Add support for multi-year planning
 - Incorporate more complex environmental factors
+- Implement data visualization for results
+
 
 Contact
 https://bjornkennethholmstrom.wordpress.com/contact/
