@@ -45,13 +45,26 @@ class NumpyEncoder(JSONEncoder):
 old_stdout = sys.stdout
 sys.stdout = mystdout = StringIO()
 
-def tree_growth(age, max_size, growth_rate):
-    return max_size * (1 - np.exp(-growth_rate * age))
+def climate_factor(climate_zone):
+    factors = {
+        'tropical': 1.2,
+        'dry': 0.8,
+        'temperate': 1.0,
+        'continental': 0.9,
+        'polar': 0.7
+    }
+    return factors.get(climate_zone, 1.0)  # Default to 1.0 if climate zone is not recognized
 
-def carbon_sequestration(size):
-    return 0.5 * size  # Simplified model: 50% of biomass is carbon
+def tree_growth(age, max_size, growth_rate, soil_quality='medium', climate_zone='temperate'):
+    soil_factor = {'poor': 0.7, 'medium': 1.0, 'good': 1.3}[soil_quality]
+    c_factor = climate_factor(climate_zone)
+    return max_size * (1 - np.exp(-growth_rate * age * soil_factor * c_factor))
 
-def optimize_reforestation(total_budget, land_area, years, species_data, discount_rate=0.05, max_iterations=2000, function_tolerance=1e-8, min_budget_utilization=0.6, species_diversity_factor=2):
+def carbon_sequestration(size, climate_zone='temperate'):
+    c_factor = climate_factor(climate_zone)
+    return 0.5 * size * c_factor  # Adjust carbon sequestration based on climate
+
+def optimize_reforestation(total_budget, land_area, years, species_data, soil_quality='medium', climate_zone='temperate', discount_rate=0.05, max_iterations=2000, function_tolerance=1e-8, min_budget_utilization=0.6, species_diversity_factor=2):
     n_species = len(species_data)
     
     def objective(x):
@@ -61,8 +74,10 @@ def optimize_reforestation(total_budget, land_area, years, species_data, discoun
             for s, species in enumerate(species_data):
                 trees_planted = x[year, s]
                 for age in range(years - year):
-                    size = tree_growth(age, species_data[species]['max_size'], species_data[species]['growth_rate'])
-                    carbon = carbon_sequestration(size) * trees_planted
+                    size = tree_growth(age, species_data[species]['max_size'], 
+                                       species_data[species]['growth_rate'], 
+                                       soil_quality, climate_zone)
+                    carbon = carbon_sequestration(size, climate_zone) * trees_planted
                     biodiversity = species_data[species]['biodiversity'] * trees_planted
                     discount_factor = 1 / ((1 + discount_rate) ** (year + age))
                     # Give more weight to later years
@@ -124,7 +139,7 @@ def optimize_reforestation(total_budget, land_area, years, species_data, discoun
     
     return tree_counts, -result.fun, result.success, result.message
 
-def calculate_impact(tree_counts, species_data, years, discount_rate=0.05):
+def calculate_impact(tree_counts, species_data, years, soil_quality='medium', climate_zone='temperate', discount_rate=0.05):
     impact = {year: {} for year in range(years)}
     cumulative_impact = {'carbon': 0, 'biodiversity': 0, 'cost': 0, 'area': 0}
     
@@ -133,8 +148,8 @@ def calculate_impact(tree_counts, species_data, years, discount_rate=0.05):
             species = species_data[s]
             for year in range(plant_year, years):
                 age = year - plant_year
-                size = tree_growth(age, species['max_size'], species['growth_rate'])
-                carbon = carbon_sequestration(size) * count
+                size = tree_growth(age, species['max_size'], species['growth_rate'], soil_quality, climate_zone)
+                carbon = carbon_sequestration(size, climate_zone) * count
                 biodiversity = species['biodiversity'] * count
                 discount_factor = 1 / ((1 + discount_rate) ** year)
                 
@@ -143,7 +158,7 @@ def calculate_impact(tree_counts, species_data, years, discount_rate=0.05):
                 
             impact[plant_year]['cost'] = impact[plant_year].get('cost', 0) + count * species['cost']
             impact[plant_year]['area'] = impact[plant_year].get('area', 0) + count * species['area']
-        
+    
     for year in range(years):
         for key in ['carbon', 'biodiversity', 'cost', 'area']:
             impact[year][key] = float(impact[year].get(key, 0))
@@ -182,15 +197,17 @@ def multi_start_optimization(total_budget, land_area, years, species_data, n_sta
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-def run_optimization(budget, land_area, years, species_data, max_iterations, function_tolerance, min_budget_utilization, species_diversity_factor):
+def run_optimization(budget, land_area, years, species_data, soil_quality, climate_zone, max_iterations, function_tolerance, min_budget_utilization, species_diversity_factor):
     tree_counts, objective_value, success, message, n_starts, formatted_warnings = multi_start_optimization(
         budget, land_area, years, species_data, 
+        soil_quality=soil_quality,
+        climate_zone=climate_zone,
         max_iterations=max_iterations, 
         function_tolerance=function_tolerance, 
         min_budget_utilization=min_budget_utilization, 
         species_diversity_factor=species_diversity_factor
     )
-    impact, cumulative_impact = calculate_impact(tree_counts, species_data, years)
+    impact, cumulative_impact = calculate_impact(tree_counts, species_data, years, soil_quality=soil_quality, climate_zone=climate_zone)
     
     # Debug log
     logger.debug(f"Formatted warnings: {formatted_warnings}")
@@ -219,6 +236,8 @@ result = run_optimization(
     ${formData.landArea}, 
     ${formData.years}, 
     ${JSON.stringify(formData.species)},
+    '${formData.soilQuality}',
+    '${formData.climateZone}',
     ${formData.maxIterations},
     ${formData.functionTolerance},
     ${formData.minBudgetUtilization},
@@ -265,6 +284,7 @@ json.dumps({"result": result, "warnings": warnings}, cls=NumpyEncoder)
 
 // Declare variables in a wider scope
 let form, resultsDiv, loadingDiv, addSpeciesButton, speciesInputs, loadExampleButton;
+let advancedFeatures;
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM fully loaded");
@@ -333,13 +353,31 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Add the event listener for toggle-advanced here
-    const toggleAdvancedButton = document.getElementById('toggle-advanced');
+/*    const toggleAdvancedButton = document.getElementById('toggle-advanced');
     if (toggleAdvancedButton) {
         console.log("Toggle advanced button found");
         toggleAdvancedButton.addEventListener('click', toggleAdvancedOptions);
     } else {
         console.error("Toggle advanced button not found");
-    }
+    }*/
+
+  const advancedOptionsToggle = document.getElementById('toggle-advanced');
+  const advancedOptions = document.getElementById('advanced-options');
+  const categoryToggles = document.querySelectorAll('.category-toggle');
+
+  advancedOptionsToggle.addEventListener('click', function() {
+    advancedOptions.style.display = advancedOptions.style.display === 'none' ? 'block' : 'none';
+    advancedOptionsToggle.textContent = advancedOptions.style.display === 'none' ? 'Show Advanced Options' : 'Hide Advanced Options';
+  });
+
+  categoryToggles.forEach(toggle => {
+    toggle.addEventListener('click', function() {
+      const content = this.nextElementSibling;
+      content.style.display = content.style.display === 'none' ? 'block' : 'none';
+      this.classList.toggle('active');
+    });
+  });
+
 });
 
 
@@ -485,7 +523,10 @@ async function handleFormSubmit(e) {
         maxIterations: parseInt(document.getElementById('max-iterations').value),
         functionTolerance: parseFloat(document.getElementById('function-tolerance').value),
         minBudgetUtilization: parseFloat(document.getElementById('min-budget-utilization').value) / 100,
-        speciesDiversityFactor: parseFloat(document.getElementById('species-diversity-factor').value)
+        speciesDiversityFactor: parseFloat(document.getElementById('species-diversity-factor').value),
+        soilQuality: document.getElementById('soil-quality').value,
+        climateZone: document.getElementById('climate-zone').value,
+        // Add more environmental factors here as they are implemented
     };
 
     try {

@@ -178,6 +178,47 @@ button:hover {
     font-style: italic;
 }
 
+#advanced-options {
+  margin-top: 20px;
+  border: 1px solid #ddd;
+  padding: 15px;
+  border-radius: 5px;
+}
+
+.option-category {
+  margin-bottom: 15px;
+}
+
+.category-toggle {
+  cursor: pointer;
+  padding: 10px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+}
+
+.category-toggle:hover {
+  background-color: #e0e0e0;
+}
+
+.category-toggle.active {
+  background-color: #d0d0d0;
+}
+
+.category-content {
+  padding: 10px;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 3px 3px;
+}
+
+.option-description {
+  font-size: 0.9em;
+  color: #666;
+  margin-top: 5px;
+}
+
 @media screen and (max-width: 600px) {
     body {
         padding: 10px;

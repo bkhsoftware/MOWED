@@ -8,8 +8,10 @@ Features
 - Add multiple tree species with individual characteristics
 - Optimize for carbon sequestration and biodiversity
 - Multi year planning
+- Options for soil quality and climate zone
 - View detailed results including tree counts and environmental impact
 - Mobile-friendly interface
+- Fine tuning of optimization parameters
 
 Demo
 [Include a link to the live demo once it's deployed on GitHub Pages]
