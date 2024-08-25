@@ -182,8 +182,8 @@ def optimize_reforestation(total_budget, land_area, years, species_data,
     
     def constraint_min_planting(x):
         x = x.reshape((years, n_species))
-        min_trees_per_year = total_budget / (years * max(species_data[s]['cost'] for s in species_data)) / 10
-        return np.sum(x, axis=1) - min_trees_per_year  # Ensure a minimum number of trees planted each year
+        min_trees_per_year = total_budget / (years * np.max(species_costs)) / 10
+        return np.sum(x, axis=1) - min_trees_per_year
     
     def constraint_min_budget(x):
         x = x.reshape((years, n_species))
@@ -197,14 +197,28 @@ def optimize_reforestation(total_budget, land_area, years, species_data,
         x = x.reshape((years, n_species))
         return -np.sum(np.abs(x[1:] - x[:-1]))  # Minimize year-to-year differences
 
-    constraints = [
-        {'type': 'ineq', 'fun': constraint_budget},
-        {'type': 'eq', 'fun': constraint_land},
-        {'type': 'ineq', 'fun': constraint_min_planting},
-        {'type': 'ineq', 'fun': constraint_min_budget},
-        {'type': 'ineq', 'fun': constraint_species_diversity},
-        {'type': 'ineq', 'fun': constraint_smoothing}
-    ]
+    if solver == 'SLSQP':
+        constraints = [
+            {'type': 'ineq', 'fun': constraint_budget},
+            {'type': 'eq', 'fun': constraint_land},
+            {'type': 'ineq', 'fun': constraint_min_planting},
+            {'type': 'ineq', 'fun': constraint_min_budget},
+            {'type': 'ineq', 'fun': constraint_species_diversity},
+            {'type': 'ineq', 'fun': constraint_smoothing}
+        ]
+    elif solver == 'COBYLA':
+        def combined_constraint(x):
+            return np.concatenate([
+                [constraint_budget(x)],
+                [constraint_land(x)],
+                constraint_min_planting(x),
+                [constraint_min_budget(x)],
+                constraint_species_diversity(x),
+                [constraint_smoothing(x)]
+            ])
+        constraints = {'type': 'ineq', 'fun': combined_constraint}
+    else:
+        raise ValueError(f"Unsupported solver: {solver}")
 
     bounds = [(0, None) for _ in range(years * n_species)]
     
@@ -226,9 +240,14 @@ def optimize_reforestation(total_budget, land_area, years, species_data,
     
     def callback(xk):
         debug_print(f"Iteration {callback.count}:")
-        for i, constraint in enumerate(constraints):
-            constraint_value = constraint['fun'](xk)
-            debug_print(f"Constraint {i}: {constraint_value}")
+        if isinstance(constraints, list):
+            for i, constraint in enumerate(constraints):
+                constraint_value = constraint['fun'](xk)
+                debug_print(f"Constraint {i}: {constraint_value}")
+        else:
+            constraint_values = constraints['fun'](xk)
+            for i, value in enumerate(constraint_values):
+                debug_print(f"Constraint {i}: {value}")
         callback.count += 1
     callback.count = 0
 
