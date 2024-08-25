@@ -189,6 +189,53 @@ button:hover {
   margin-bottom: 15px;
 }
 
+.option-category .category-content > div {
+  margin-bottom: 15px;
+}
+
+.option-category input[type="checkbox"] {
+  margin-right: 5px;
+}
+
+.option-category label {
+  margin-right: 10px;
+}
+
+.option-category select,
+.option-category input[type="number"] {
+  margin-right: 5px;
+}
+
+.option-description {
+  margin-top: 5px;
+  font-size: 0.9em;
+  color: #666;
+}
+
+.env-factor {
+    margin-bottom: 15px;
+}
+
+.env-factor input[type="checkbox"] {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 5px;
+}
+
+.env-factor label {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 10px;
+}
+
+.env-factor select,
+.env-factor input[type="number"] {
+    display: block;
+    margin-top: 5px;
+    width: 100%;
+    max-width: 200px;
+}
+
 .category-toggle {
   cursor: pointer;
   padding: 10px;
