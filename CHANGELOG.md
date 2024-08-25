@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Included detailed results display with tree counts and environmental impact.
 - Implemented warning system for optimization issues.
 - Added advanced options for fine-tuning the optimization process.
-- Added optimization for soil quality and climate zone
+- Added optimization for soil quality, climate zone and elevation
 
 ### Fixed
 - Resolved JSON parsing issues between Python and JavaScript.

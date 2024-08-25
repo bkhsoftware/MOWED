@@ -8,7 +8,7 @@ Features
 - Add multiple tree species with individual characteristics
 - Optimize for carbon sequestration and biodiversity
 - Multi year planning
-- Options for soil quality and climate zone
+- Options for soil quality, climate zone and elevation
 - View detailed results including tree counts and environmental impact
 - Mobile-friendly interface
 - Fine tuning of optimization parameters
