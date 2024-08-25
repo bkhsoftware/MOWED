@@ -34,11 +34,11 @@ Technologies Used
 - SciPy (for optimization algorithms)
 
 Contributing
-While this project is primarily for educational and non-commercial use, contributions for bug fixes or improvements are welcome. Please read the LICENSE file for details on usage and distribution.
+While this project is primarily for educational and non-commercial use, contributions for bug fixes or improvements are welcome. Please read the LICENSE.md file for details on usage and distribution.
 
 License
 This project is licensed under a custom license that allows free use for educational, research, and non-commercial purposes. Commercial use is strictly prohibited without explicit permission from the copyright holder.
-For full license terms, please see the LICENSE file in this repository.
+For full license terms, please see the LICENSE.md file in this repository.
 For commercial use inquiries, please contact: bjorn.kenneth.holmstrom@gmail.com
 
 Authors
