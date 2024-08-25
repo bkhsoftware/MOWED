@@ -1,7 +1,7 @@
 MOWED - Mathematical Optimization With End-user Devices
 
 Description
-MOWED is a web-based tool for reforestation optimization. It allows users to input various parameters and constraints to determine the optimal mix of tree species for reforestation projects.
+MOWED / ROT is a web-based tool for reforestation optimization. It allows users to input various parameters and constraints to determine the optimal mix of tree species for reforestation projects.
 
 Features
 - Input budget and land area constraints
