@@ -232,11 +232,18 @@ def optimize_reforestation(total_budget, land_area, years, species_data,
     #    initial_guess *= land_area / land_usage
     
     debug_print("Checking initial guess:")
-    for i, constraint in enumerate(constraints):
-        constraint_value = constraint['fun'](initial_guess)
-        debug_print(f"Constraint {i}: {constraint_value}")
-        if constraint['type'] == 'ineq' and np.any(constraint_value < 0):
-            debug_print(f"Initial guess violates constraint {i}")
+    if isinstance(constraints, list):
+        for i, constraint in enumerate(constraints):
+            constraint_value = constraint['fun'](initial_guess)
+            debug_print(f"Constraint {i}: {constraint_value}")
+            if constraint['type'] == 'ineq' and np.any(constraint_value < 0):
+                debug_print(f"Initial guess violates constraint {i}")
+    else:
+        constraint_values = constraints['fun'](initial_guess)
+        for i, value in enumerate(constraint_values):
+            debug_print(f"Constraint {i}: {value}")
+            if np.any(value < 0):
+                debug_print(f"Initial guess violates constraint {i}")
     
     def callback(xk):
         debug_print(f"Iteration {callback.count}:")
