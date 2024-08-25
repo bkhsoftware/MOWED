@@ -10,16 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2024-08-25
 
 ### Added
-- Implemented reforestation optimization algorithm using Python and SciPy.
-- Created web-based interface using HTML, CSS, and JavaScript.
-- Integrated Pyodide for running Python code in the browser.
-- Added feature to input budget, land area, and multiple tree species characteristics.
 - Implemented multi-year planning capability.
 - Added optimization for carbon sequestration and biodiversity.
 - Included detailed results display with tree counts and environmental impact.
 - Implemented warning system for optimization issues.
 - Added advanced options for fine-tuning the optimization process.
-- Added optimization for soil quality, climate zone and elevation
+- Added optional optimization for environmental factors: soil quality, climate zone, elevation and annual rainfall
+- Added optional solver COBYLA
+- Added optional debug print
 
 ### Fixed
 - Resolved JSON parsing issues between Python and JavaScript.
@@ -34,4 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Project initialization.
 - Basic structure for the web application.
-- Initial implementation of the optimization algorithm.
+- Implemented reforestation optimization algorithm using Python and SciPy with solver SLSQP
+- Added feature to input budget, land area, and multiple tree species characteristics.
+- Created web-based interface using HTML, CSS, and JavaScript.
+- Integrated Pyodide for running Python code in the browser.
