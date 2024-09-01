@@ -20,7 +20,7 @@ async function runOptimization(formData) {
   
     // Update the Python function with a more sophisticated model
     let pythonResult = await pyodide.runPythonAsync(`
-from scipy.optimize import minimize
+from scipy.optimize import minimize, NonlinearConstraint
 import numpy as np
 import json
 import sys
@@ -30,6 +30,8 @@ from io import StringIO
 from json import JSONEncoder
 from collections import Counter
 import logging
+
+debug = True
 
 class NumpyEncoder(JSONEncoder):
     def default(self, obj):
@@ -117,29 +119,157 @@ def carbon_sequestration(size, use_climate_zone=False, climate_zone='temperate',
     
     return carbon
 
+def get_smart_initial_guess(total_budget, land_area, years, species_data, species_costs, species_areas, species_carbon, species_biodiversity):
+    n_species = len(species_data)
+    x0 = np.zeros((years, n_species))
+    
+    for year in range(years):
+        year_budget = total_budget / years
+        year_land = land_area / years
+        species_indices = list(range(n_species))
+        np.random.shuffle(species_indices)
+        
+        for i in species_indices:
+            max_trees = min(year_budget / species_costs[i], year_land / species_areas[i])
+            trees = int(max_trees * np.random.uniform(0.5, 1.0))
+            x0[year, i] = trees
+            year_budget -= trees * species_costs[i]
+            year_land -= trees * species_areas[i]
+            
+            if year_budget <= 0 or year_land <= 0:
+                break
+    
+    return x0.flatten()
+
+def get_single_species_initial_guess(total_budget, land_area, years, species_data):
+    n_species = len(species_data)
+    guesses = []
+    
+    for focus_species in range(n_species):
+        x0 = np.zeros((years, n_species))
+        species_cost = species_data[list(species_data.keys())[focus_species]]['cost']
+        species_area = species_data[list(species_data.keys())[focus_species]]['area']
+        
+        for year in range(years):
+            max_trees = min(total_budget / (years - year) / species_cost, 
+                            land_area / (years - year) / species_area)
+            x0[year, focus_species] = max_trees * (1 - year / years)  # Plant fewer trees in later years
+        
+        guesses.append(x0.flatten())
+    
+    return guesses
+
+def multi_start_optimization(total_budget, land_area, years, species_data, n_starts=5, **kwargs):
+    best_result = None
+    best_objective = float('inf')
+    best_success = False
+    best_message = ""
+    best_debug_output = ""
+    
+    debug = kwargs.get('debug', False)
+    if debug:
+        debug_output = io.StringIO()
+        def debug_print(*args, **kwargs):
+            print(*args, **kwargs, file=debug_output)
+    else:
+        debug_output = None
+        def debug_print(*args, **kwargs):
+            pass
+
+    debug_print(f"Starting multi-start optimization with {n_starts} starts")
+    
+    # Generate single-species initial guesses
+    single_species_guesses = get_single_species_initial_guess(total_budget, land_area, years, species_data)
+    
+    # Calculate how many additional smart guesses we need
+    n_smart_guesses = max(0, n_starts - len(single_species_guesses))
+    
+    # Pre-calculate these values once
+    species_costs = np.array([species_data[s]['cost'] for s in species_data])
+    species_areas = np.array([species_data[s]['area'] for s in species_data])
+    species_carbon = np.array([species_data[s]['carbon'] for s in species_data])
+    species_biodiversity = np.array([species_data[s]['biodiversity'] for s in species_data])
+    
+    for i in range(n_starts):
+        debug_print(f"Start {i+1}/{n_starts}")
+        start_time = time.time()
+        
+        # Choose the initial guess
+        if i < len(single_species_guesses):
+            initial_guess = single_species_guesses[i]
+            debug_print(f"Using single-species initial guess for species {i}")
+        else:
+            initial_guess = get_smart_initial_guess(total_budget, land_area, years, species_data, 
+                                                    species_costs, species_areas, species_carbon, species_biodiversity)
+            debug_print("Using smart initial guess")
+        
+        # Add the initial guess to the kwargs
+        kwargs['initial_guess'] = initial_guess
+        
+        tree_counts, objective_value, success, message, opt_debug_output = optimize_reforestation(
+            total_budget, land_area, years, species_data, **kwargs)
+        
+        end_time = time.time()
+        
+        debug_print(f"Optimization {i+1} completed in {end_time - start_time:.2f} seconds")
+        debug_print(f"Objective value: {objective_value}")
+        debug_print(f"Success: {success}")
+        debug_print(f"Message: {message}")
+        
+        # Check if this result is better than the current best
+        if tree_counts is not None and objective_value < best_objective:
+            best_result = tree_counts
+            best_objective = objective_value
+            best_success = success
+            best_message = message
+            best_debug_output = opt_debug_output
+            debug_print("New best solution found")
+    
+    if best_result is None:
+        debug_print("Warning: All optimization attempts failed.")
+        return None, None, False, "All optimization attempts failed", debug_output.getvalue() if debug else ""
+    
+    debug_print(f"Best objective value: {best_objective}")
+    debug_print(f"Best success: {best_success}")
+    debug_print(f"Best message: {best_message}")
+    
+    if debug:
+        return best_result, best_objective, best_success, best_message, debug_output.getvalue() + "\\n" + best_debug_output
+    else:
+        return best_result, best_objective, best_success, best_message, ""
+
 def optimize_reforestation(total_budget, land_area, years, species_data, 
                            use_soil_quality=False, soil_quality='medium', 
                            use_climate_zone=False, climate_zone='temperate', 
                            use_elevation=False, elevation=0, 
                            use_annual_rainfall=False, annual_rainfall=1000, 
-                           discount_rate=0.05, max_iterations=2000, 
-                           function_tolerance=1e-8, min_budget_utilization=0.6, 
-                           species_diversity_factor=2, n_starts=5, debug=False, solver='SLSQP'):
-    debug_output = io.StringIO() if debug else None
-    
-    def debug_print(*args, **kwargs):
-        if debug:
+                           discount_rate=0.05, max_iterations=10000, 
+                           function_tolerance=1e-10, min_budget_utilization=0.6, 
+                           species_diversity_factor=2, debug=False, solver='SLSQP',
+                           initial_guess=None):
+    if debug:
+        debug_output = io.StringIO()
+        def debug_print(*args, **kwargs):
             print(*args, **kwargs, file=debug_output)
+    else:
+        debug_output = None
+        def debug_print(*args, **kwargs):
+            pass
+
+    debug_print("Starting single optimization")
+
 
     n_species = len(species_data)
     
     # Pre-calculate some constants to avoid repeated computations
     species_costs = np.array([species_data[s]['cost'] for s in species_data])
     species_areas = np.array([species_data[s]['area'] for s in species_data])
+    species_carbon = np.array([species_data[s]['carbon'] for s in species_data])
     species_biodiversity = np.array([species_data[s]['biodiversity'] for s in species_data])
     
     debug_print(f"Species costs: {species_costs}")
     debug_print(f"Species areas: {species_areas}")
+    debug_print(f"Species carbon: {species_carbon}")
     debug_print(f"Species biodiversity: {species_biodiversity}")
 
     def objective(x):
@@ -166,38 +296,44 @@ def optimize_reforestation(total_budget, land_area, years, species_data,
                         year_weight = 1 + (year / years)
                         total_value += (carbon + biodiversity) * discount_factor * year_weight
             
-            return -total_value  # Negative because we're minimizing
+            # Add penalties for constraint violations
+            penalty = 0
+            penalty += max(0, -constraint_budget(x)) ** 2
+            penalty += max(0, -constraint_land(x)) ** 2
+            penalty += np.sum(np.maximum(0, -constraint_min_planting(x))) ** 2
+            penalty += max(0, -constraint_min_budget(x)) ** 2
+            penalty += np.sum(np.maximum(0, -constraint_species_diversity(x))) ** 2
+            penalty += max(0, constraint_smoothing(x)) ** 2
+            
+            #return -total_value + 1e6 * penalty  # Adjust the penalty weight as needed
+            return -total_value
         except Exception as e:
             debug_print(f"Error in objective function: {e}")
             return np.inf
 
     def constraint_budget(x):
-        x = x.reshape((years, n_species))
-        return total_budget - np.sum(x * species_costs)
-    
+        return total_budget - np.sum(x.reshape((years, n_species)) * species_costs)
+
     def constraint_land(x):
-        x = x.reshape((years, n_species))
-        total_area = np.sum(x * species_areas)
-        return land_area - total_area
-    
+        return land_area - np.sum(x.reshape((years, n_species)) * species_areas)
+
     def constraint_min_planting(x):
         x = x.reshape((years, n_species))
-        min_trees_per_year = total_budget / (years * np.max(species_costs)) / 10
+        min_trees_per_year = total_budget / (years * np.max(species_costs)) / 20  # Reduced from 10 to 20
         return np.sum(x, axis=1) - min_trees_per_year
-    
+
     def constraint_min_budget(x):
-        x = x.reshape((years, n_species))
-        return np.sum(x * species_costs) - min_budget_utilization * total_budget
+        return np.sum(x.reshape((years, n_species)) * species_costs) - min_budget_utilization * total_budget
 
     def constraint_species_diversity(x):
         x = x.reshape((years, n_species))
         return np.sum(x, axis=0) - np.sum(x) / (species_diversity_factor * n_species)
-    
+
     def constraint_smoothing(x):
         x = x.reshape((years, n_species))
-        return -np.sum(np.abs(x[1:] - x[:-1]))  # Minimize year-to-year differences
+        return -np.sum(np.abs(x[1:] - x[:-1]))
 
-    if solver == 'SLSQP':
+    if solver in ['SLSQP', 'trust-constr']:
         constraints = [
             {'type': 'ineq', 'fun': constraint_budget},
             {'type': 'eq', 'fun': constraint_land},
@@ -218,14 +354,38 @@ def optimize_reforestation(total_budget, land_area, years, species_data,
             ])
         constraints = {'type': 'ineq', 'fun': combined_constraint}
     else:
-        raise ValueError(f"Unsupported solver: {solver}")
+        constraints = []
 
     bounds = [(0, None) for _ in range(years * n_species)]
+
+    
+    def callback(xk, state=None):
+        nonlocal best_x, best_value
+        current_value = objective(xk)
+        if current_value < best_value:
+            best_x = xk
+            best_value = current_value
+        callback.iterations += 1
+        if callback.iterations % 100 == 0:
+            debug_print(f"Iteration {callback.iterations}, Best value: {best_value}")
+        return False  # Returning False allows the optimization to continue
+
+    # Initialize callback and best solution variables
+    callback.iterations = 0
+    best_x = None
+    best_value = np.inf
     
     # Adjust initial guess to respect land area constraint and encourage even distribution
-    total_trees = land_area / np.mean([species_data[s]['area'] for s in species_data])
-    initial_guess = np.ones(years * n_species) * total_trees / (years * n_species)
-    
+    #total_trees = land_area / np.mean([species_data[s]['area'] for s in species_data])
+    #initial_guess = np.ones(years * n_species) * total_trees / (years * n_species)
+    #initial_guess = get_smart_initial_guess(total_budget, land_area, years, species_data, 
+    #                                        species_costs, species_areas, species_carbon, species_biodiversity)
+
+    if initial_guess is None:
+        initial_guess = get_smart_initial_guess(total_budget, land_area, years, species_data, 
+                                                species_costs, species_areas, species_carbon, species_biodiversity)
+    debug_print(f"Initial guess: {initial_guess}")
+
     # Adjust for land area constraint
     #land_usage = np.sum(initial_guess.reshape(years, n_species) * species_areas)
     #if land_usage > land_area:
@@ -244,45 +404,63 @@ def optimize_reforestation(total_budget, land_area, years, species_data,
             debug_print(f"Constraint {i}: {value}")
             if np.any(value < 0):
                 debug_print(f"Initial guess violates constraint {i}")
-    
-    def callback(xk):
-        debug_print(f"Iteration {callback.count}:")
-        if isinstance(constraints, list):
-            for i, constraint in enumerate(constraints):
-                constraint_value = constraint['fun'](xk)
-                debug_print(f"Constraint {i}: {constraint_value}")
-        else:
-            constraint_values = constraints['fun'](xk)
-            for i, value in enumerate(constraint_values):
-                debug_print(f"Constraint {i}: {value}")
-        callback.count += 1
-    callback.count = 0
 
+    start_time = time.time()
     if solver == 'SLSQP':
-        result = minimize(objective, initial_guess, method='SLSQP', bounds=bounds, constraints=constraints, 
-                          options={'maxiter': int(max_iterations), 'ftol': function_tolerance})
+        result = minimize(objective, initial_guess, method='SLSQP', 
+                          bounds=bounds, constraints=constraints, 
+                          options={'maxiter': max_iterations, 'ftol': function_tolerance, 'disp': True, 'iprint': 1},
+                          callback=callback)
+    elif solver == 'L-BFGS-B':
+        result = minimize(objective, initial_guess, method='L-BFGS-B', 
+                          bounds=bounds,
+                          options={'maxiter': max_iterations, 'ftol': function_tolerance, 'disp': True},
+                          callback=callback)
+    elif solver == 'trust-constr':
+        result = minimize(objective, initial_guess, method='trust-constr', 
+                          constraints=constraints, bounds=bounds,
+                          options={'maxiter': max_iterations, 'verbose': 2},
+                          callback=callback)
     elif solver == 'COBYLA':
-        result = minimize(objective, initial_guess, method='COBYLA', constraints=constraints, 
-                          options={'maxiter': int(max_iterations), 'tol': function_tolerance})
+        result = minimize(objective, initial_guess, method='COBYLA', 
+                          constraints=constraints, 
+                          options={'maxiter': max_iterations, 'tol': function_tolerance, 'disp': True},
+                          callback=callback)
     else:
         raise ValueError(f"Unsupported solver: {solver}")
-    
+
+
+    # After optimization, use the best solution found
+    if best_x is not None and objective(best_x) < objective(result.x):
+        result.x = best_x
+        result.fun = objective(best_x)            
     debug_print(f"Optimization result: {result.success}, message: {result.message}")
     debug_print(f"Objective value: {result.fun}")
 
     if result is None or result.success:
         debug_print(f"Warning: Optimization failed. No valid solution found.")
-        return None, None, False, "Optimization failed", debug_output.getvalue() if debug else ""
+#            return None, None, False, "Optimization failed", debug_output.getvalue() if debug else ""
 
+    end_time = time.time()
+    optimization_time = end_time - start_time
+
+    debug_print(f"Optimization completed in {optimization_time:.2f} seconds")
+    debug_print(f"Optimization result: {result.success}, message: {result.message}")
+    debug_print(f"Objective value: {result.fun}")
+
+    # Process the result
     tree_counts = {}
     x = result.x.reshape((years, n_species))
     for year in range(years):
-        tree_counts[year] = {s: int(round(x[year, i])) for i, s in enumerate(species_data)}
+        tree_counts[year] = {s: max(0, int(round(x[year, i]))) for i, s in enumerate(species_data)}
     
     debug_print("Final tree counts:")
-    debug_print(tree_counts)
+    debug_print(str(tree_counts))
     
-    return tree_counts, -result.fun, result.success, result.message, debug_output.getvalue() if debug else ""
+    if debug:
+        return tree_counts, -result.fun, result.success, result.message, debug_output.getvalue()
+    else:
+        return tree_counts, -result.fun, result.success, result.message, ""
 
 def calculate_impact(tree_counts, species_data, years, use_soil_quality=False, soil_quality='medium', use_climate_zone=False, climate_zone='temperate', use_elevation=False, elevation=0, use_annual_rainfall=False, annual_rainfall=1000, discount_rate=0.05):
     impact = {year: {} for year in range(years)}
@@ -350,8 +528,9 @@ def run_optimization(budget, land_area, years, species_data, use_soil_quality, s
     debug_output += f"Number of Starts: {n_starts}\\n"
     debug_output += f"Solver: {solver}\\n"
     
-    tree_counts, objective_value, success, message, opt_debug_output = optimize_reforestation(
+    tree_counts, objective_value, success, message, opt_debug_output = multi_start_optimization(
         budget, land_area, years, species_data, 
+        n_starts=n_starts,
         use_soil_quality=use_soil_quality,
         soil_quality=soil_quality,
         use_climate_zone=use_climate_zone,
@@ -365,7 +544,6 @@ def run_optimization(budget, land_area, years, species_data, use_soil_quality, s
         min_budget_utilization=min_budget_utilization, 
         species_diversity_factor=species_diversity_factor,
         debug=debug,
-        n_starts=n_starts,
         solver=solver
     )
     
@@ -429,7 +607,7 @@ optimization_result = run_optimization(
     ${formData.minBudgetUtilization || 0.6},
     ${formData.speciesDiversityFactor},
     debug=${formData.debug ? 'True' : 'False'},
-    n_starts=10,
+    n_starts=${formData.nStarts || 5},
     solver='${formData.solver}'
 )
 
@@ -724,6 +902,7 @@ async function handleFormSubmit(e) {
         years: parseInt(document.getElementById('years').value),
         species: species,
         elevation: parseFloat(document.getElementById('elevation').value),
+        n_starts: parseInt(document.getElementById('n-starts').value) || 5,
         maxIterations: parseInt(document.getElementById('max-iterations').value),
         functionTolerance: parseFloat(document.getElementById('function-tolerance').value),
         minBudgetUtilization: parseFloat(document.getElementById('min-budget-utilization').value) / 100,

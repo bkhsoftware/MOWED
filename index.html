@@ -23,17 +23,22 @@
             <label for="solver">Optimization Solver:</label>
             <select id="solver" name="solver">
                 <option value="SLSQP">SLSQP</option>
+                <option value="L-BFGS-B">L-BFGS-B</option>
                 <option value="COBYLA">COBYLA</option>
+                <option value="trust-constr">trust-constr</option>
             </select>
         </div>
         <div class="option-category">
             <h4 class="category-toggle">Optimization Parameters</h4>
             <div class="category-content" style="display: none;">
+                <label for="n-starts">Number of Starts:</label>
+                <input type="number" id="n-starts" value="5" min="1" max="20">
+
                 <label for="max-iterations">Maximum Iterations:</label>
-                <input type="number" id="max-iterations" value="2000">
+                <input type="number" id="max-iterations" value="10000">
                 
                 <label for="function-tolerance">Function Tolerance:</label>
-                <input type="number" id="function-tolerance" value="1e-8" step="1e-9">
+                <input type="number" id="function-tolerance" value="1e-10" step="1e-11">
                 
                 <label for="min-budget-utilization">Minimum Budget Utilization (%):</label>
                 <input type="number" id="min-budget-utilization" value="60" min="0" max="100">
