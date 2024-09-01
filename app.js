@@ -159,6 +159,51 @@ def get_single_species_initial_guess(total_budget, land_area, years, species_dat
     
     return guesses
 
+def feasibility_pump(total_budget, land_area, years, species_data, max_iterations=100, tolerance=1e-6):
+    n_species = len(species_data)
+    species_costs = np.array([species_data[s]['cost'] for s in species_data])
+    species_areas = np.array([species_data[s]['area'] for s in species_data])
+
+    def round_solution(x):
+        return np.round(x).astype(int)
+
+    def project_to_constraints(x):
+        x = x.astype(float).reshape(years, n_species)  # Reshape to 2D array
+        
+        # Project to budget constraint
+        total_cost = np.sum(x * species_costs)
+        if total_cost > total_budget:
+            x *= total_budget / total_cost
+
+        # Project to land area constraint
+        total_area = np.sum(x * species_areas)
+        if total_area > land_area:
+            x *= land_area / total_area
+
+        return x.flatten()  # Flatten back to 1D array
+
+    # Initial guess
+    x = np.zeros(years * n_species, dtype=float)
+    for year in range(years):
+        year_budget = total_budget / years
+        year_land = land_area / years
+        for i in range(n_species):
+            max_trees = min(year_budget / species_costs[i], year_land / species_areas[i])
+            x[year * n_species + i] = max_trees * np.random.uniform(0.5, 1.0)
+            year_budget -= x[year * n_species + i] * species_costs[i]
+            year_land -= x[year * n_species + i] * species_areas[i]
+
+    for iteration in range(max_iterations):
+        x_round = round_solution(x)
+        x_proj = project_to_constraints(x_round)
+        
+        if np.linalg.norm(x - x_proj) < tolerance:
+            return x_proj
+
+        x = 0.5 * (x + x_proj)
+
+    return project_to_constraints(round_solution(x))
+
 def multi_start_optimization(total_budget, land_area, years, species_data, n_starts=5, **kwargs):
     best_result = None
     best_objective = float('inf')
@@ -190,21 +235,26 @@ def multi_start_optimization(total_budget, land_area, years, species_data, n_sta
     species_carbon = np.array([species_data[s]['carbon'] for s in species_data])
     species_biodiversity = np.array([species_data[s]['biodiversity'] for s in species_data])
     
+    initial_guess = kwargs.get('initial_guess')
+    if initial_guess is not None:
+        n_starts = max(1, n_starts - 1)  # Use at least one start with the provided initial guess
+
     for i in range(n_starts):
         debug_print(f"Start {i+1}/{n_starts}")
         start_time = time.time()
         
-        # Choose the initial guess
-        if i < len(single_species_guesses):
-            initial_guess = single_species_guesses[i]
-            debug_print(f"Using single-species initial guess for species {i}")
+        if i == 0 and initial_guess is not None:
+            kwargs['initial_guess'] = initial_guess
+            debug_print(f"Using provided initial guess")
         else:
-            initial_guess = get_smart_initial_guess(total_budget, land_area, years, species_data, 
-                                                    species_costs, species_areas, species_carbon, species_biodiversity)
-            debug_print("Using smart initial guess")
-        
-        # Add the initial guess to the kwargs
-        kwargs['initial_guess'] = initial_guess
+            # Use your existing methods for generating initial guesses
+            if i < len(single_species_guesses):
+                kwargs['initial_guess'] = single_species_guesses[i]
+                debug_print(f"Using single-species initial guess for species {i}")
+            else:
+                kwargs['initial_guess'] = get_smart_initial_guess(total_budget, land_area, years, species_data, 
+                                                                  species_costs, species_areas, species_carbon, species_biodiversity)
+                debug_print("Using smart initial guess")
         
         tree_counts, objective_value, success, message, opt_debug_output = optimize_reforestation(
             total_budget, land_area, years, species_data, **kwargs)
@@ -311,6 +361,18 @@ def optimize_reforestation(total_budget, land_area, years, species_data,
             debug_print(f"Error in objective function: {e}")
             return np.inf
 
+    def objective_lbfgs(x):
+        base_value = objective(x)
+        # Add penalties for constraint violations
+        penalty = 0
+        x_reshaped = x.reshape((years, n_species))
+        total_cost = np.sum(x_reshaped * species_costs)
+        total_area = np.sum(x_reshaped * species_areas)
+        penalty += max(0, total_cost - total_budget) ** 2
+        penalty += max(0, total_area - land_area) ** 2
+        penalty += max(0, min_budget_utilization * total_budget - total_cost) ** 2
+        return base_value + 1e6 * penalty  # Large penalty factor
+
     def constraint_budget(x):
         return total_budget - np.sum(x.reshape((years, n_species)) * species_costs)
 
@@ -356,8 +418,22 @@ def optimize_reforestation(total_budget, land_area, years, species_data,
     else:
         constraints = []
 
-    bounds = [(0, None) for _ in range(years * n_species)]
 
+    if solver == 'L-BFGS-B':
+        # Calculate bounds
+        max_trees_per_species = np.minimum(total_budget / species_costs, land_area / species_areas)
+        bounds = [(0, int(max_trees)) for max_trees in max_trees_per_species] * years
+
+        if initial_guess is None:
+            initial_guess = feasibility_pump(total_budget, land_area, years, species_data)
+        
+        # Ensure initial guess respects bounds
+        initial_guess = np.clip(initial_guess, 0, np.tile(max_trees_per_species, years))
+    else:
+        bounds = [(0, None) for _ in range(years * n_species)]
+
+        if initial_guess is None:
+            initial_guess = feasibility_pump(total_budget, land_area, years, species_data)
     
     def callback(xk, state=None):
         nonlocal best_x, best_value
@@ -374,22 +450,6 @@ def optimize_reforestation(total_budget, land_area, years, species_data,
     callback.iterations = 0
     best_x = None
     best_value = np.inf
-    
-    # Adjust initial guess to respect land area constraint and encourage even distribution
-    #total_trees = land_area / np.mean([species_data[s]['area'] for s in species_data])
-    #initial_guess = np.ones(years * n_species) * total_trees / (years * n_species)
-    #initial_guess = get_smart_initial_guess(total_budget, land_area, years, species_data, 
-    #                                        species_costs, species_areas, species_carbon, species_biodiversity)
-
-    if initial_guess is None:
-        initial_guess = get_smart_initial_guess(total_budget, land_area, years, species_data, 
-                                                species_costs, species_areas, species_carbon, species_biodiversity)
-    debug_print(f"Initial guess: {initial_guess}")
-
-    # Adjust for land area constraint
-    #land_usage = np.sum(initial_guess.reshape(years, n_species) * species_areas)
-    #if land_usage > land_area:
-    #    initial_guess *= land_area / land_usage
     
     debug_print("Checking initial guess:")
     if isinstance(constraints, list):
@@ -412,7 +472,7 @@ def optimize_reforestation(total_budget, land_area, years, species_data,
                           options={'maxiter': max_iterations, 'ftol': function_tolerance, 'disp': True, 'iprint': 1},
                           callback=callback)
     elif solver == 'L-BFGS-B':
-        result = minimize(objective, initial_guess, method='L-BFGS-B', 
+        result = minimize(objective_lbfgs, initial_guess, method='L-BFGS-B', 
                           bounds=bounds,
                           options={'maxiter': max_iterations, 'ftol': function_tolerance, 'disp': True},
                           callback=callback)
@@ -528,6 +588,8 @@ def run_optimization(budget, land_area, years, species_data, use_soil_quality, s
     debug_output += f"Number of Starts: {n_starts}\\n"
     debug_output += f"Solver: {solver}\\n"
     
+    initial_guess = feasibility_pump(budget, land_area, years, species_data)
+    
     tree_counts, objective_value, success, message, opt_debug_output = multi_start_optimization(
         budget, land_area, years, species_data, 
         n_starts=n_starts,
@@ -544,7 +606,8 @@ def run_optimization(budget, land_area, years, species_data, use_soil_quality, s
         min_budget_utilization=min_budget_utilization, 
         species_diversity_factor=species_diversity_factor,
         debug=debug,
-        solver=solver
+        solver=solver,
+        initial_guess=initial_guess
     )
     
     debug_output += opt_debug_output
