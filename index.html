@@ -35,7 +35,7 @@
                 <input type="number" id="n-starts" value="5" min="1" max="20">
 
                 <label for="max-iterations">Maximum Iterations:</label>
-                <input type="number" id="max-iterations" value="10000">
+                <input type="number" id="max-iterations" name="maxIterations" value="10000">
                 
                 <label for="function-tolerance">Function Tolerance:</label>
                 <input type="number" id="function-tolerance" value="1e-10" step="1e-11">
@@ -151,5 +151,19 @@
 
     <script src="https://cdn.jsdelivr.net/pyodide/v0.22.1/full/pyodide.js"></script>
     <script src="app.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const solverSelect = document.getElementById('solver');
+        const maxIterationsInput = document.getElementById('max-iterations');
+
+        solverSelect.addEventListener('change', function() {
+            if (this.value === 'trust-constr') {
+                maxIterationsInput.value = 2000;  // Set default to 1000 for trust-constr
+            } else {
+                maxIterationsInput.value = 10000;  // Set default back to 5000 for other solvers
+            }
+        });
+    });
+    </script>
 </body>
 </html>
