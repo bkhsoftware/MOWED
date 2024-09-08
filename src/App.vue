@@ -1,14 +1,18 @@
 <template>
   <div id="app">
-    <h1>MOWED</h1>
-    <p>Mathematical Optimization With End-user Devices</p>
-    <ModuleSelector />
-    <component :is="currentModuleComponent" v-if="currentModule"></component>
+    <header>
+      <h1>MOWED</h1>
+      <p>Mathematical Optimization With End-user Devices</p>
+    </header>
+    <main>
+      <ModuleSelector />
+      <component :is="currentModuleComponent" v-if="currentModule"></component>
+    </main>
   </div>
 </template>
 
 <script>
-import { mapState } from 'vuex';
+import { mapGetters } from 'vuex';
 import ModuleSelector from './components/ModuleSelector.vue';
 import PersonalFinanceComponent from './components/PersonalFinanceComponent.vue';
 
@@ -19,7 +23,7 @@ export default {
     PersonalFinanceComponent,
   },
   computed: {
-    ...mapState(['currentModule']),
+    ...mapGetters(['currentModule']),
     currentModuleComponent() {
       if (!this.currentModule) return null;
       switch (this.currentModule.getName()) {
@@ -32,3 +36,17 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+main {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+</style>

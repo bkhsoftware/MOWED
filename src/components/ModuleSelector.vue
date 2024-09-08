@@ -21,7 +21,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(['availableModules']),
+    ...mapGetters(['availableModules', 'currentModule']),
     modules() {
       return this.availableModules;
     },
@@ -34,5 +34,10 @@ export default {
       }
     },
   },
+  mounted() {
+    if (this.currentModule) {
+      this.selectedModule = this.currentModule.getName();
+    }
+  }
 };
 </script>
