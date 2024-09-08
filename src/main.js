@@ -1,9 +1,12 @@
-import { createApp } from 'vue'
-import App from './App.vue'
-import { registerModule } from './core/moduleLoader'
-import personalFinanceModule from './modules/personal-finance'
+import { createApp } from 'vue';
+import App from './App.vue';
+import store from './store';
+import ModuleRegistry from './core/ModuleRegistry';
+import PersonalFinance from './modules/PersonalFinance';
 
-registerModule('personalFinance', personalFinanceModule)
+// Register modules
+ModuleRegistry.registerModule(new PersonalFinance());
 
-const app = createApp(App)
-app.mount('#app')
+const app = createApp(App);
+app.use(store);
+app.mount('#app');
