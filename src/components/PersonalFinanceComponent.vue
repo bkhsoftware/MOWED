@@ -21,12 +21,16 @@
       <p>Monthly savings: ${{ result.availableSavings.toFixed(2) }}</p>
       <p>Time to reach goal: {{ result.monthsToGoal }} months</p>
     </div>
+    <div v-if="result" class="chart-container">
+      <canvas ref="chartCanvas"></canvas>
+    </div>
   </div>
 </template>
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
 import PersonalFinance from '../modules/PersonalFinance';
+import Chart from 'chart.js/auto';
 
 export default {
   name: 'PersonalFinanceComponent',
@@ -34,7 +38,8 @@ export default {
     return {
       module: new PersonalFinance(),
       formData: {},
-      result: null
+      result: null,
+      chart: null
     };
   },
   computed: {
@@ -52,6 +57,51 @@ export default {
         moduleName: this.module.getName(),
         data: { formData: this.formData, result: this.result }
       });
+      this.$nextTick(() => {
+        this.createChart();
+      });
+    },
+    createChart() {
+      const ctx = this.$refs.chartCanvas.getContext('2d');
+      
+      if (this.chart) {
+        this.chart.destroy();
+      }
+      
+      this.chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Income', 'Expenses', 'Savings'],
+          datasets: [{
+            label: 'Monthly Finances',
+            data: [
+              this.formData.income,
+              this.formData.expenses,
+              this.result.availableSavings
+            ],
+            backgroundColor: [
+              'rgba(75, 192, 192, 0.6)',
+              'rgba(255, 99, 132, 0.6)',
+              'rgba(54, 162, 235, 0.6)'
+            ],
+            borderColor: [
+              'rgba(75, 192, 192, 1)',
+              'rgba(255, 99, 132, 1)',
+              'rgba(54, 162, 235, 1)'
+            ],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          },
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      });
     }
   },
   created() {
@@ -60,6 +110,20 @@ export default {
       this.formData = savedData.formData;
       this.result = savedData.result;
     }
+  },
+  mounted() {
+    if (this.result) {
+      this.$nextTick(() => {
+        this.createChart();
+      });
+    }
   }
 };
 </script>
+
+<style scoped>
+.chart-container {
+  height: 300px;
+  margin-top: 20px;
+}
+</style>
