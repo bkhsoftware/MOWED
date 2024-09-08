@@ -71,6 +71,7 @@ wheels/
 *.egg
 
 # Logs
+logs/
 *.log
 
 # Unit test / coverage reports
@@ -105,8 +106,12 @@ target/
 *.tmp
 *.temp
 
-# Personal documents
-/docs
+# Proprietary or sensitive content
+/proprietary_algorithms/
+/custom_solvers/
+/business_strategy/
 
-# Old code
-/scrapped
+/archive
+
+# User data (should never be committed)
+/user_data/

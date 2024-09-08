@@ -1,0 +1,58 @@
+body {
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+h1, h2 {
+  color: #2c3e50;
+}
+
+.module-selector {
+  margin-bottom: 20px;
+}
+
+.module-selector select {
+  padding: 5px;
+  font-size: 16px;
+}
+
+.personal-finance form {
+  display: grid;
+  gap: 10px;
+}
+
+.personal-finance label {
+  display: block;
+  font-weight: bold;
+}
+
+.personal-finance input {
+  padding: 5px;
+  font-size: 16px;
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+.personal-finance button {
+  background-color: #42b983;
+  color: white;
+  border: none;
+  padding: 10px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.personal-finance button:hover {
+  background-color: #3aa876;
+}
+
+.result {
+  background-color: #f0f0f0;
+  padding: 15px;
+  margin-top: 20px;
+  border-radius: 5px;
+}
