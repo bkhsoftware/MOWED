@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [vue()],
@@ -7,10 +8,13 @@ export default defineConfig({
     port: 3000
   },
   build: {
-    outDir: 'dist'
+    outDir: 'dist',
     rollupOptions: {
       input: {
-        main: '/public/index.html'
+        main: resolve(__dirname, 'index.html'),
+        offline: resolve(__dirname, 'public/offline.html')
       }
-  }
+    }
+  },
+  publicDir: 'public',
 })

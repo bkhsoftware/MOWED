@@ -15,12 +15,18 @@
 import { mapGetters } from 'vuex';
 import ModuleSelector from './components/ModuleSelector.vue';
 import PersonalFinanceComponent from './modules/personal-finance/PersonalFinanceComponent.vue';
+import EducationComponent from './modules/education/EducationComponent.vue';
+import ReforestationComponent from './modules/reforestation/ReforestationComponent.vue';
+import SmallBusinessComponent from './modules/small-business/SmallBusinessComponent.vue';
 
 export default {
   name: 'App',
   components: {
     ModuleSelector,
     PersonalFinanceComponent,
+    EducationComponent,
+    ReforestationComponent,
+    SmallBusinessComponent
   },
   computed: {
     ...mapGetters(['currentModule']),
@@ -29,24 +35,36 @@ export default {
       switch (this.currentModule.getName()) {
         case 'Personal Finance':
           return 'PersonalFinanceComponent';
+        case 'Education':
+          return 'EducationComponent';
+        case 'Reforestation':
+          return 'ReforestationComponent';
+        case 'Small Business':
+          return 'SmallBusinessComponent';
         default:
           return null;
       }
-    },
-  },
+    }
+  }
 };
 </script>
 
-<style scoped>
+<style>
+#app {
+  font-family: Arial, sans-serif;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
 header {
   text-align: center;
   margin-bottom: 30px;
 }
 
 main {
-  background-color: #fff;
+  background-color: #f5f5f5;
   padding: 20px;
   border-radius: 5px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 </style>

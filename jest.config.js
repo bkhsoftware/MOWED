@@ -1,15 +1,21 @@
 module.exports = {
-  testEnvironment: 'jsdom',
+  moduleFileExtensions: ['js', 'jsx', 'json', 'vue'],
   transform: {
     '^.+\\.vue$': '@vue/vue3-jest',
-    '^.+\\js$': 'babel-jest'
+    '^.+\\.js$': 'babel-jest',
   },
-  moduleFileExtensions: ['vue', 'js', 'json', 'jsx', 'ts', 'tsx', 'node'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1'
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
   },
-  transformIgnorePatterns: ['/node_modules/(?!@vue/test-utils)'],
+  testMatch: [
+    '**/tests/unit/**/*.spec.(js|jsx|ts|tsx)|**/__tests__/*.(js|jsx|ts|tsx)'
+  ],
+  testEnvironment: 'jsdom',
   testEnvironmentOptions: {
     customExportConditions: ["node", "node-addons"],
   },
-}
+  transformIgnorePatterns: ['/node_modules/(?!@vue)'],
+  setupFilesAfterEnv: ['<rootDir>/tests/unit/setup.js'],
+  setupFiles: ['./jest.setup.js']
+};

@@ -1,29 +1,59 @@
-import PersonalFinance from '@/modules/PersonalFinance';
+import PersonalFinance from '@/modules/personal-finance';
+import EventBus from '@/core/EventBus';
 
-describe('PersonalFinance', () => {
-  let module;
+jest.mock('@/core/EventBus');
+
+describe('PersonalFinance Module', () => {
+  let personalFinance;
 
   beforeEach(() => {
-    module = new PersonalFinance();
+    personalFinance = new PersonalFinance();
+    EventBus.emit.mockClear();
   });
 
-  it('should have the correct name and description', () => {
-    expect(module.getName()).toBe('Personal Finance');
-    expect(module.getDescription()).toBe('Optimize your personal financial decisions');
-  });
+  test('solve method calculates correct results', () => {
+    const input = {
+      income: 5000,
+      expenses: 3000,
+      savingsGoal: 10000
+    };
 
-  it('should return correct input fields', () => {
-    const fields = module.getInputFields();
-    expect(fields).toHaveLength(3);
-    expect(fields[0].name).toBe('income');
-    expect(fields[1].name).toBe('expenses');
-    expect(fields[2].name).toBe('savingsGoal');
-  });
+    const result = personalFinance._solve(input);
 
-  it('should solve the optimization problem correctly', () => {
-    const input = { income: 5000, expenses: 3000, savingsGoal: 10000 };
-    const result = module.solve(input);
     expect(result.availableSavings).toBe(2000);
     expect(result.monthsToGoal).toBe(5);
+    expect(result.message).toContain('save 2000 per month');
+    expect(result.message).toContain('5 months to reach your savings goal');
+  });
+
+  test('solve method throws error when expenses exceed income', () => {
+    const input = {
+      income: 3000,
+      expenses: 5000,
+      savingsGoal: 10000
+    };
+
+    expect(() => personalFinance._solve(input)).toThrow('Expenses cannot be greater than or equal to income');
+  });
+
+  test('getInputFields returns correct fields', () => {
+    const fields = personalFinance.getInputFields();
+
+    expect(fields).toHaveLength(3);
+    expect(fields).toContainEqual({ name: 'income', type: 'number', label: 'Monthly Income' });
+    expect(fields).toContainEqual({ name: 'expenses', type: 'number', label: 'Monthly Expenses' });
+    expect(fields).toContainEqual({ name: 'savingsGoal', type: 'number', label: 'Savings Goal' });
+  });
+
+  test('solve method emits event with result', () => {
+    const input = {
+      income: 5000,
+      expenses: 3000,
+      savingsGoal: 10000
+    };
+
+    personalFinance._solve(input);
+
+    expect(EventBus.emit).toHaveBeenCalledWith('updateModuleState', expect.any(Object));
   });
 });
