@@ -1,13 +1,26 @@
-import { createApp } from 'vue';
-import App from './App.vue';
-import store from './store';
-import ModuleRegistry from './core/ModuleRegistry';
-import PersonalFinance from './modules/PersonalFinance';
-import './assets/main.css';
+import { createApp } from 'vue'
+import App from './App.vue'
+import store from './store'
+import { registerModules } from './registerModules'
 
-// Register modules
-ModuleRegistry.registerModule(new PersonalFinance());
+const app = createApp(App)
 
-const app = createApp(App);
-app.use(store);
-app.mount('#app');
+registerModules()
+
+app.use(store)
+
+store.dispatch('initStore').then(() => {
+  app.mount('#app')
+})
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(registration => {
+        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+      }, err => {
+        console.log('ServiceWorker registration failed: ', err);
+      });
+  });
+}

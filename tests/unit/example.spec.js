@@ -5,10 +5,11 @@ import App from '@/App.vue';
 const createVuexStore = () => {
   return createStore({
     state: {
-      currentModule: null,
+      currentModuleName: null,
     },
     getters: {
       availableModules: () => [],
+      currentModule: (state) => state.currentModuleName ? { getName: () => state.currentModuleName } : null,
     },
   });
 };

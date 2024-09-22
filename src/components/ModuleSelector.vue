@@ -3,7 +3,7 @@
     <h2>Select a Module</h2>
     <select v-model="selectedModule" @change="changeModule">
       <option value="">-- Select --</option>
-      <option v-for="module in modules" :key="module.getName()" :value="module.getName()">
+      <option v-for="module in availableModules" :key="module.getName()" :value="module.getName()">
         {{ module.getName() }}
       </option>
     </select>
@@ -22,9 +22,6 @@ export default {
   },
   computed: {
     ...mapGetters(['availableModules', 'currentModule']),
-    modules() {
-      return this.availableModules;
-    },
   },
   methods: {
     ...mapActions(['selectModule']),
@@ -41,3 +38,4 @@ export default {
   }
 };
 </script>
+</template>

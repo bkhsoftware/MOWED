@@ -1,0 +1,52 @@
+# MOWED Business Strategy
+
+## Overview
+MOWED (Mathematical Optimization With End-user Devices) is a project under bkhsoftware, committed to democratizing access to optimization tools. This strategy outlines how MOWED will maintain its mission while ensuring sustainability.
+
+## Core Principles
+1. Provide free access to basic optimization tools
+2. Maintain control and keep operations small-scale
+3. Generate enough income to cover costs and development time
+4. Prioritize user value and education over profit
+
+## Funding Model
+The funding model is designed to support MOWED's development and maintenance while keeping the core product free.
+
+### Primary Income Sources
+1. Donations
+   - Implement a "Buy me a coffee" or similar donation system
+   - Clearly communicate how donations are used (e.g., server costs, development time)
+
+2. Optional Paid Services (Future Consideration)
+   - Cloud-based computation for complex problems
+   - Custom module development
+   - Consulting services for specialized optimization needs
+
+### Secondary Considerations
+1. Educational Outreach
+   - Keep MOWED free for educational use to build goodwill and future user base
+   - Consider offering specialized support or custom modules for educational institutions at a nominal fee
+
+2. Patronage Program
+   - Offer special recognition or early access to new features for regular supporters
+
+## Implementation Timeline
+1. Phase 1 (Current): Develop and release free core product
+2. Phase 2: Implement donation system and clear communication about funding needs
+3. Phase 3: Gradually introduce optional paid services as capabilities and demand grow
+
+## Measuring Success
+- User adoption and retention rates
+- Donation frequency and amounts
+- User feedback and testimonials, especially from educational users
+- Ability to cover operational costs and fund ongoing development
+
+## Risks and Mitigations
+- Risk: Insufficient income to cover costs
+  Mitigation: Maintain low overhead, leverage free hosting options initially
+
+- Risk: Balancing free offerings with paid services
+  Mitigation: Clearly differentiate free and paid offerings, ensure core product remains valuable
+
+## Review and Adaptation
+This strategy will be reviewed bi-annually to ensure alignment with MOWED's mission and financial sustainability.
