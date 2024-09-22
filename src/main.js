@@ -2,7 +2,7 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import store from './store';
 import ModuleRegistry from './core/ModuleRegistry';
-import PersonalFinance from './modules/PersonalFinance';
+import PersonalFinance from './modules/personal-finance/index';
 import './assets/main.css';
 
 // Register modules

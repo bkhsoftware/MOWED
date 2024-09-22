@@ -14,7 +14,7 @@
 <script>
 import { mapGetters } from 'vuex';
 import ModuleSelector from './components/ModuleSelector.vue';
-import PersonalFinanceComponent from './components/PersonalFinanceComponent.vue';
+import PersonalFinanceComponent from './modules/personal-finance/PersonalFinanceComponent.vue';
 
 export default {
   name: 'App',

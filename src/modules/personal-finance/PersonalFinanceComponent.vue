@@ -29,7 +29,7 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
-import PersonalFinance from '../modules/PersonalFinance';
+import PersonalFinance from './index';
 import Chart from 'chart.js/auto';
 
 export default {

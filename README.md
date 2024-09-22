@@ -46,31 +46,34 @@ MOWED aims to democratize access to optimization tools, bridging the gap between
 
 The MOWED project follows a typical Vue.js application structure with some custom directories for optimization modules. Here's an overview of the main directories and their purposes:
 mowed/
-├── public/                     # Static assets served as-is
-│   ├── favicon.ico             # Website favicon
-│   └── index.html              # Main HTML file
-├── src/                        # Source files for the application
-│   ├── assets/                 # Static assets that will be processed by Vite
-│   ├── components/             # Vue components
-│   ├── core/                   # Core functionality and interfaces
-│   │   └── ModuleInterface.js  # Base class for optimization modules
-│   ├── modules/                # Optimization module implementations
-│   │   └── PersonalFinance.js  # Personal Finance module
-│   ├── store/                  # Vuex store for state management
-│   │   └── index.js            # Main store file
-│   ├── utils/                  # Utility functions
-│   │   └── storage.js          # LocalStorage utilities
-│   ├── App.vue                 # Root Vue component
-│   └── main.js                 # Application entry point
-├── tests/                      # Test files
-│   ├── unit/                   # Unit tests (Jest)
-│   └── e2e/                    # End-to-end tests (Cypress)
-├── .gitignore                  # Git ignore file
-├── package.json                # NPM package configuration
-├── vite.config.js              # Vite configuration
-├── jest.config.js              # Jest configuration for unit tests
-├── cypress.config.js           # Cypress configuration for e2e tests
-└── README.md                   # This file
+├── public/                              # Static assets served as-is
+│   ├── favicon.ico                      # Website favicon
+│   └── index.html                       # Main HTML file
+├── src/                                 # Source files for the application
+│   ├── assets/                          # Static assets that will be processed by Vite
+│   ├── components/                      # Vue components
+│   └── ModuleSelector.vue
+│   ├── core/                            # Core functionality and interfaces
+│   │   └── ModuleInterface.js           # Base class for optimization modules
+│   ├── modules/                         # Optimization module implementations
+│   ├── personal-finance/
+│   │   ├── index.js                     # Personal Finance module
+│   │   └── PersonalFinanceComponent.vue
+│   ├── store/                           # Vuex store for state management
+│   │   └── index.js                     # Main store file
+│   ├── utils/                           # Utility functions
+│   │   └── storage.js                   # LocalStorage utilities
+│   ├── App.vue                          # Root Vue component
+│   └── main.js                          # Application entry point
+├── tests/                               # Test files
+│   ├── unit/                            # Unit tests (Jest)
+│   └── e2e/                             # End-to-end tests (Cypress)
+├── .gitignore                           # Git ignore file
+├── package.json                         # NPM package configuration
+├── vite.config.js                       # Vite configuration
+├── jest.config.js                       # Jest configuration for unit tests
+├── cypress.config.js                    # Cypress configuration for e2e tests
+└── README.md                            # This file
 
 ### Directory Purposes:
 
