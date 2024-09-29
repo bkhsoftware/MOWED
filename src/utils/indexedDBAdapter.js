@@ -1,3 +1,5 @@
+import { serialize, deserialize } from './serializationUtil';
+
 export default class IndexedDBAdapter {
   constructor(dbName = 'MOWED_DB', version = 1) {
     this.dbName = dbName;
@@ -27,16 +29,18 @@ export default class IndexedDBAdapter {
     });
   }
 
-  async saveData(moduleName, data) {
-    return this._performTransaction('moduleData', 'readwrite', (store) => {
-      store.put({ moduleName, data });
+  async saveData(key, value) {
+    const serializedValue = serialize(value);
+    return this._performTransaction('moduleData', 'readwrite', store => {
+      store.put({ moduleName: key, data: serializedValue });
     });
   }
 
-  async getData(moduleName) {
-    return this._performTransaction('moduleData', 'readonly', (store) => {
-      return store.get(moduleName);
+  async getData(key) {
+    const result = await this._performTransaction('moduleData', 'readonly', store => {
+      return store.get(key);
     });
+    return result ? deserialize(result.data) : null;
   }
 
   async addToOfflineQueue(action) {
@@ -62,10 +66,10 @@ export default class IndexedDBAdapter {
       const transaction = this.db.transaction(storeName, mode);
       const store = transaction.objectStore(storeName);
 
-      const request = callback(store);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
 
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
+      callback(store);
     });
   }
 }

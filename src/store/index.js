@@ -2,10 +2,16 @@ import { createStore } from 'vuex';
 import ModuleRegistry from '../core/ModuleRegistry';
 import IndexedDBAdapter from '../utils/indexedDBAdapter';
 import EventBus from '../core/EventBus';
+import moduleStore from './moduleStore';
+import { serialize, deserialize } from '../utils/serializationUtil';
+
 
 const dbAdapter = new IndexedDBAdapter();
 
 const store = createStore({
+  modules: {
+    moduleStore
+  },
   state: {
     currentModuleName: null,
     moduleData: {},
@@ -24,20 +30,35 @@ const store = createStore({
   },
   actions: {
     async initStore({ dispatch }) {
-      await dbAdapter.init();
-      await dispatch('loadAllModuleData');
+      try {
+        await dbAdapter.init();
+        await dispatch('loadAllModuleData');
+      } catch (error) {
+        console.error('Error initializing store:', error);
+        EventBus.emit('storeInitError', error);
+      }
     },
     async selectModule({ commit }, moduleName) {
       commit('setCurrentModule', moduleName);
     },
     async saveModuleData({ commit }, { moduleName, data }) {
-      await dbAdapter.saveData(moduleName, data);
-      commit('setModuleData', { moduleName, data });
+      try {
+        await dbAdapter.saveData(moduleName, data);
+        commit('setModuleData', { moduleName, data });
+      } catch (error) {
+        console.error('Error saving module data:', error);
+        EventBus.emit('saveModuleDataError', { moduleName, error });
+      }
     },
     async loadModuleData({ commit }, moduleName) {
-      const data = await dbAdapter.getData(moduleName);
-      if (data) {
-        commit('setModuleData', { moduleName, data });
+      try {
+        const data = await dbAdapter.getData(moduleName);
+        if (data) {
+          commit('setModuleData', { moduleName, data });
+        }
+      } catch (error) {
+        console.error('Error loading module data:', error);
+        EventBus.emit('loadModuleDataError', { moduleName, error });
       }
     },
     async loadAllModuleData({ dispatch }) {
@@ -46,15 +67,29 @@ const store = createStore({
         await dispatch('loadModuleData', module.getName());
       }
     },
-    async performAction({ state, dispatch }, action) {
+    async solve({ dispatch, state }, { moduleName, input }) {
+      try {
+        const module = ModuleRegistry.getModule(moduleName);
+        const result = await module.solve(input);
+        const serializableResult = JSON.parse(JSON.stringify(result));
+        await dispatch('saveModuleData', { moduleName, data: { formData: input, result: serializableResult } });
+        return serializableResult;
+      } catch (error) {
+        console.error('Error solving module:', error);
+        EventBus.emit('solveError', { moduleName, error });
+        throw error;
+      }
+    },
+    async performAction({ dispatch, state }, action) {
       if (state.isOnline) {
-        await dispatch(action.type, action.payload);
+        return dispatch(action.type, action.payload);
       } else {
         await dbAdapter.addToOfflineQueue(action);
         if ('serviceWorker' in navigator && 'SyncManager' in window) {
           const sw = await navigator.serviceWorker.ready;
           await sw.sync.register('sync-solve-queue');
         }
+        return { message: 'Action queued for offline processing' };
       }
     },
     async syncOfflineActions({ dispatch }) {

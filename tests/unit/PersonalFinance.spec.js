@@ -56,4 +56,51 @@ describe('PersonalFinance Module', () => {
 
     expect(EventBus.emit).toHaveBeenCalledWith('updateModuleState', expect.any(Object));
   });
+
+  test('solve method handles case where savings goal is already met', () => {
+    const input = {
+      income: 5000,
+      expenses: 3000,
+      savingsGoal: 1000
+    };
+
+    const result = personalFinance._solve(input);
+
+    expect(result.availableSavings).toBe(2000);
+    expect(result.monthsToGoal).toBe(1);
+    expect(result.message).toContain('1 month to reach your savings goal');
+  });
+
+  test('solve method correctly rounds up months to goal', () => {
+    const input = {
+      income: 5000,
+      expenses: 4500,
+      savingsGoal: 1000
+    };
+
+    const result = personalFinance._solve(input);
+
+    expect(result.availableSavings).toBe(500);
+    expect(result.monthsToGoal).toBe(2);
+  });
+
+  test('EventBus emits correct data', () => {
+    const input = {
+      income: 5000,
+      expenses: 3000,
+      savingsGoal: 10000
+    };
+
+    personalFinance._solve(input);
+
+    expect(EventBus.emit).toHaveBeenCalledWith('updateModuleState', {
+      moduleName: 'Personal Finance',
+      moduleState: {
+        lastCalculation: {
+          availableSavings: 2000,
+          monthsToGoal: 5
+        }
+      }
+    });
+  });
 });

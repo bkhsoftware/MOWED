@@ -164,6 +164,33 @@ The Vuex store is defined in `src/store/index.js`. It handles:
 - Module-specific data
 - Application-wide settings (if any)
 
+## Development Guidelines
+
+To ensure consistency and prevent common errors when working on MOWED, please follow these guidelines:
+
+1. Consult the [TECHNICAL_GUIDELINES.md](TECHNICAL_GUIDELINES.md) document for detailed information on the core architecture, common pitfalls, and best practices.
+
+2. When working with the EventBus:
+   - Always use `EventBus.on()` to subscribe to events in the `created` hook
+   - Always use `EventBus.off()` to unsubscribe from events in the `beforeUnmount` hook
+
+3. When creating new modules:
+   - Extend the `ModuleInterface` class
+   - Implement all required methods: `getName()`, `getDescription()`, `_solve()`, `getInputFields()`
+   - Use `EventBus.emit()` to communicate module state changes
+
+4. Follow the Vue.js style guide and use meaningful commit messages
+
+5. Write unit tests for all new functionality and ensure all tests pass before submitting a pull request
+
+6. Use the IndexedDBAdapter for data persistence, ensuring proper serialization of data
+
+7. Implement error handling in all asynchronous operations
+
+8. Refer to the Phase 2 TODO list in [PHASE_2_TODO.md](PHASE_2_TODO.md) for current development priorities
+
+By following these guidelines, we can maintain a high-quality codebase and minimize errors in development.
+
 ## Data Persistence
 
 Data is persisted using the browser's localStorage. The implementation can be found in `src/utils/storage.js`.
@@ -177,13 +204,13 @@ Data is persisted using the browser's localStorage. The implementation can be fo
 - [Jest](https://jestjs.io/) - Testing framework
 - [Cypress](https://www.cypress.io/) - End-to-end testing framework
 
-## Contributing
-
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
-
 ## Versioning
 
 We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/bkhsoftware/MOWED/tags).
+
+## Current Development Status
+
+As of version 0.2.1, we have completed the core architecture and are moving into Phase 2 of development, focusing on the implementation of four initial modules: Personal Finance, Education Resource Allocation, Reforestation Optimization, and Small Business Management. Refer to [PHASE_2_TODO.md](PHASE_2_TODO.md) for the detailed development plan.
 
 ## Future Plans
 

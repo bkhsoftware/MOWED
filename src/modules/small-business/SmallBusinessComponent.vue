@@ -1,5 +1,5 @@
 <template>
-  <div class="personal-finance">
+  <div class="small-business">
     <h2>{{ module.getName() }}</h2>
     <p>{{ module.getDescription() }}</p>
     <form @submit.prevent="solveOptimization">
@@ -9,17 +9,15 @@
           :id="field.name" 
           :type="field.type" 
           v-model.number="formData[field.name]"
-          :min="0"
+          :min="field.name === 'employees' ? 1 : 0"
           required
         >
       </div>
-      <button type="submit">Optimize</button>
+      <button type="submit">Analyze</button>
     </form>
     <div v-if="result" class="result">
       <h3>Result:</h3>
       <p>{{ result.message }}</p>
-      <p>Monthly savings: ${{ result.availableSavings ? result.availableSavings.toFixed(2) : '0.00' }}</p>
-      <p>Time to reach goal: {{ result.monthsToGoal || 0 }} months</p>
     </div>
     <div v-if="result" class="chart-container">
       <canvas ref="chartCanvas"></canvas>
@@ -29,15 +27,14 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
-import PersonalFinance from './index';
+import SmallBusiness from './index';
 import Chart from 'chart.js/auto';
-import EventBus from '../../core/EventBus';
 
 export default {
-  name: 'PersonalFinanceComponent',
+  name: 'SmallBusinessComponent',
   data() {
     return {
-      module: new PersonalFinance(),
+      module: new SmallBusiness(),
       formData: {},
       result: null,
       chart: null
@@ -47,30 +44,20 @@ export default {
     ...mapGetters(['getModuleData'])
   },
   methods: {
-    ...mapActions(['performAction']),
-    async solveOptimization() {
+    ...mapActions(['saveModuleData']),
+    solveOptimization() {
       try {
-        if (this.validateInput()) {
-          const result = await this.performAction({
-            type: 'solve',
-            payload: {
-              moduleName: this.module.getName(),
-              input: JSON.parse(JSON.stringify(this.formData))
-            }
-          });
-          this.result = result;
-          this.$nextTick(() => {
-            this.createChart();
-          });
-        }
+        this.result = this.module.solve(this.formData);
+        this.saveModuleData({
+          moduleName: this.module.getName(),
+          data: { formData: this.formData, result: this.result }
+        });
+        this.$nextTick(() => {
+          this.createChart();
+        });
       } catch (error) {
-        console.error('Error in solveOptimization:', error);
-        alert(`An error occurred while optimizing: ${error.message}`);
+        alert(error.message);
       }
-    },
-    validateInput() {
-      // Add input validation logic here
-      return true; // Return false if validation fails
     },
     createChart() {
       const ctx = this.$refs.chartCanvas.getContext('2d');
@@ -82,23 +69,23 @@ export default {
       this.chart = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: ['Income', 'Expenses', 'Savings'],
+          labels: ['Revenue', 'Costs', 'Profit'],
           datasets: [{
-            label: 'Monthly Finances',
+            label: 'Business Metrics',
             data: [
-              this.formData.income,
-              this.formData.expenses,
-              this.result.availableSavings
+              this.formData.revenue,
+              this.formData.costs,
+              this.result.profit
             ],
             backgroundColor: [
               'rgba(75, 192, 192, 0.6)',
               'rgba(255, 99, 132, 0.6)',
-              'rgba(54, 162, 235, 0.6)'
+              'rgba(255, 206, 86, 0.6)'
             ],
             borderColor: [
               'rgba(75, 192, 192, 1)',
               'rgba(255, 99, 132, 1)',
-              'rgba(54, 162, 235, 1)'
+              'rgba(255, 206, 86, 1)'
             ],
             borderWidth: 1
           }]
@@ -117,16 +104,10 @@ export default {
   },
   created() {
     const savedData = this.getModuleData(this.module.getName());
-    if (savedData && savedData.formData) {
+    if (savedData.formData) {
       this.formData = savedData.formData;
       this.result = savedData.result;
     }
-
-    EventBus.on('solveOptimizationError', ({ module, error }) => {
-      if (module === this.module.getName()) {
-        alert(`An error occurred while optimizing: ${error.message}`);
-      }
-    });
   },
   mounted() {
     if (this.result) {
@@ -134,9 +115,6 @@ export default {
         this.createChart();
       });
     }
-  },
-  beforeUnmount() {
-    EventBus.off('solveOptimizationError');
   }
 };
 </script>

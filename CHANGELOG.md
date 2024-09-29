@@ -5,6 +5,22 @@ All notable changes to the MOWED project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2024-09-29
+
+### Added
+- Comprehensive test coverage for all core components and modules
+- Detailed TODO list for Phase 2: MVP Development (4 Initial Modules)
+- In-depth technical guidelines for development best practices
+
+### Changed
+- Updated ModuleInterface tests to cover more scenarios
+- Enhanced serviceWorker tests for better coverage
+- Refined error handling in ModuleInterface
+
+### Fixed
+- Resolved issues with EventBus usage in components
+- Fixed data serialization problems in IndexedDBAdapter
+
 ## [0.2.0] - 2024-09-22
 
 ### Added

@@ -58,4 +58,47 @@ describe('SmallBusiness Module', () => {
 
     expect(EventBus.emit).toHaveBeenCalledWith('updateModuleState', expect.any(Object));
   });
+
+  test('solve method handles break-even scenario', () => {
+    const input = {
+      revenue: 100000,
+      costs: 100000,
+      employees: 10
+    };
+
+    const result = smallBusiness._solve(input);
+
+    expect(result.profit).toBe(0);
+    expect(result.revenuePerEmployee).toBe(10000);
+    expect(result.profitPerEmployee).toBe(0);
+  });
+
+  test('solve method handles fractional results', () => {
+    const input = {
+      revenue: 100000,
+      costs: 75000,
+      employees: 3
+    };
+
+    const result = smallBusiness._solve(input);
+
+    expect(result.profit).toBe(25000);
+    expect(result.revenuePerEmployee).toBeCloseTo(33333.33, 2);
+    expect(result.profitPerEmployee).toBeCloseTo(8333.33, 2);
+  });
+
+  test('EventBus emits correct data', () => {
+    const input = {
+      revenue: 100000,
+      costs: 80000,
+      employees: 10
+    };
+
+    const result = smallBusiness._solve(input);
+
+    expect(EventBus.emit).toHaveBeenCalledWith('updateModuleState', {
+      moduleName: 'Small Business',
+      moduleState: { lastAnalysis: result }
+    });
+  });
 });

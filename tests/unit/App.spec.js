@@ -36,18 +36,49 @@ describe('App.vue', () => {
     expect(wrapper.findComponent({ name: 'ModuleSelector' }).exists()).toBe(true);
   });
 
-  test('renders correct module component when currentModule is set', async () => {
-    store.getters.currentModule = { getName: () => 'Personal Finance' };
+  test.each([
+    ['Personal Finance', 'PersonalFinanceComponent'],
+    ['Education', 'EducationComponent'],
+    ['Reforestation', 'ReforestationComponent'],
+    ['Small Business', 'SmallBusinessComponent']
+  ])('renders correct module component when currentModule is %s', async (moduleName, componentName) => {
+    store.getters.currentModule = { getName: () => moduleName };
 
     const wrapper = shallowMount(App, {
       global: {
         plugins: [store],
-        stubs: ['ModuleSelector', 'PersonalFinanceComponent']
+        stubs: ['ModuleSelector', componentName]
       },
     });
 
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.findComponent({ name: 'PersonalFinanceComponent' }).exists()).toBe(true);
+    expect(wrapper.findComponent({ name: componentName }).exists()).toBe(true);
+  });
+
+  test('currentModuleComponent returns null when no module is selected', () => {
+    store.getters.currentModule = null;
+
+    const wrapper = shallowMount(App, {
+      global: {
+        plugins: [store],
+        stubs: ['ModuleSelector']
+      },
+    });
+
+    expect(wrapper.vm.currentModuleComponent).toBeNull();
+  });
+
+  test('currentModuleComponent returns null for unknown module', () => {
+    store.getters.currentModule = { getName: () => 'Unknown Module' };
+
+    const wrapper = shallowMount(App, {
+      global: {
+        plugins: [store],
+        stubs: ['ModuleSelector']
+      },
+    });
+
+    expect(wrapper.vm.currentModuleComponent).toBeNull();
   });
 });

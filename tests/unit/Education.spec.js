@@ -62,4 +62,56 @@ describe('Education Module', () => {
 
     expect(EventBus.emit).toHaveBeenCalledWith('updateModuleState', expect.any(Object));
   });
+
+  test('solve method handles edge case of single student, teacher, and classroom', () => {
+    const input = {
+      students: 1,
+      teachers: 1,
+      classrooms: 1,
+      budget: 10000
+    };
+
+    const result = education._solve(input);
+
+    expect(result.studentsPerTeacher).toBe(1);
+    expect(result.studentsPerClassroom).toBe(1);
+    expect(result.budgetPerStudent).toBe(10000);
+  });
+
+  test('solve method handles large numbers correctly', () => {
+    const input = {
+      students: 1000000,
+      teachers: 50000,
+      classrooms: 40000,
+      budget: 1000000000
+    };
+
+    const result = education._solve(input);
+
+    expect(result.studentsPerTeacher).toBe(20);
+    expect(result.studentsPerClassroom).toBe(25);
+    expect(result.budgetPerStudent).toBe(1000);
+  });
+
+  test('EventBus emits correct data', () => {
+    const input = {
+      students: 1000,
+      teachers: 50,
+      classrooms: 40,
+      budget: 1000000
+    };
+
+    education._solve(input);
+
+    expect(EventBus.emit).toHaveBeenCalledWith('updateModuleState', {
+      moduleName: 'Education',
+      moduleState: {
+        lastAllocation: expect.objectContaining({
+          studentsPerTeacher: 20,
+          studentsPerClassroom: 25,
+          budgetPerStudent: 1000
+        })
+      }
+    });
+  });
 });

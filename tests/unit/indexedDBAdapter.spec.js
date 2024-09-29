@@ -46,14 +46,23 @@ describe('IndexedDBAdapter', () => {
     expect(mockEvent.target.result.createObjectStore).toHaveBeenCalledWith('offlineQueue', { keyPath: 'id', autoIncrement: true });
   });
 
-  test('saveData calls put on the moduleData store', async () => {
-    await adapter.saveData('testModule', { data: 'test' });
-    expect(mockIndexedDB.put).toHaveBeenCalledWith({ moduleName: 'testModule', data: { data: 'test' } });
+  test('saveData calls put on the moduleData store with serialized data', async () => {
+    const testData = { data: 'test' };
+    serialize.mockReturnValue(JSON.stringify(testData));
+    await adapter.saveData('testModule', testData);
+    expect(mockIndexedDB.put).toHaveBeenCalledWith({ moduleName: 'testModule', data: JSON.stringify(testData) });
   });
 
-  test('getData calls get on the moduleData store', async () => {
-    await adapter.getData('testModule');
+  test('getData calls get on the moduleData store and deserializes the result', async () => {
+    const serializedData = JSON.stringify({ data: 'test' });
+    const deserializedData = { data: 'test' };
+    mockIndexedDB.get.mockResolvedValue({ data: serializedData });
+    deserialize.mockReturnValue(deserializedData);
+    
+    const result = await adapter.getData('testModule');
     expect(mockIndexedDB.get).toHaveBeenCalledWith('testModule');
+    expect(deserialize).toHaveBeenCalledWith(serializedData);
+    expect(result).toEqual(deserializedData);
   });
 
   test('addToOfflineQueue calls add on the offlineQueue store', async () => {

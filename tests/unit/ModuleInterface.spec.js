@@ -16,7 +16,8 @@ describe('ModuleInterface', () => {
   beforeEach(() => {
     moduleInterface = new ModuleInterface('Test', 'Test Description');
     moduleInterface.getInputFields = jest.fn().mockReturnValue([
-      { name: 'testField', type: 'number' }
+      { name: 'testField', type: 'number' },
+      { name: 'testArray', type: 'array' }
     ]);
     moduleInterface._solve = jest.fn().mockResolvedValue({ result: 'test' });
     EventBus.emit.mockClear();
@@ -69,5 +70,32 @@ describe('ModuleInterface', () => {
 
   test('validateInput throws error for incorrect field type', () => {
     expect(() => moduleInterface.validateInput({ testField: 'not a number' })).toThrow('Field testField must be a number');
+  });
+
+  test('solve method handles _solve rejection', async () => {
+    moduleInterface._solve.mockRejectedValue(new Error('Solve failed'));
+    const input = { testField: 42, testArray: [] };
+
+    await expect(moduleInterface.solve(input)).rejects.toThrow('Solve failed');
+    expect(EventBus.emit).toHaveBeenCalledWith('moduleSolveStart', { moduleName: 'Test', input });
+    expect(EventBus.emit).not.toHaveBeenCalledWith('moduleSolveEnd', expect.anything());
+  });
+
+  test('validateInput throws error for missing array field', () => {
+    expect(() => moduleInterface.validateInput({ testField: 42 })).toThrow('Missing required field: testArray');
+  });
+
+  test('validateInput throws error for incorrect array field type', () => {
+    expect(() => moduleInterface.validateInput({ testField: 42, testArray: 'not an array' })).toThrow('Field testArray must be an array');
+  });
+
+  test('validateInput passes for correct input', () => {
+    expect(() => moduleInterface.validateInput({ testField: 42, testArray: [] })).not.toThrow();
+  });
+
+  test('solve method handles validation errors', async () => {
+    const input = { testField: 'not a number', testArray: [] };
+    await expect(moduleInterface.solve(input)).rejects.toThrow('Field testField must be a number');
+    expect(moduleInterface._solve).not.toHaveBeenCalled();
   });
 });

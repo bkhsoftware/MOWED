@@ -69,4 +69,28 @@ describe('ModuleForm.vue', () => {
     await wrapper.find('button').trigger('click');
     expect(wrapper.vm.formData.field2).toEqual(['']);
   });
+
+  test('initializes formData correctly', () => {
+    const wrapper = shallowMount(ModuleForm, {
+      propsData: { module: mockModule },
+      store,
+      localVue
+    });
+    expect(wrapper.vm.formData).toEqual({
+      field1: '',
+      field2: []
+    });
+  });
+
+  test('displays result when available', async () => {
+    const wrapper = shallowMount(ModuleForm, {
+      propsData: { module: mockModule },
+      store,
+      localVue
+    });
+    await wrapper.setData({ result: { message: 'Test Result', value: 10 } });
+    expect(wrapper.find('.result').exists()).toBe(true);
+    expect(wrapper.find('.result p').text()).toBe('Test Result');
+    expect(wrapper.find('.result li').text()).toBe('value: 10');
+  });
 });
