@@ -20,6 +20,7 @@ export default class SmallBusiness extends ModuleInterface {
     const result = {
       revenue: parseFloat(revenue.toFixed(2)),
       costs: parseFloat(costs.toFixed(2)),
+      employees: parseInt(employees),
       profit: parseFloat(profit.toFixed(2)),
       revenuePerEmployee: parseFloat(revenuePerEmployee.toFixed(2)),
       profitPerEmployee: parseFloat(profitPerEmployee.toFixed(2)),
@@ -37,9 +38,22 @@ export default class SmallBusiness extends ModuleInterface {
 
   getInputFields() {
     return [
-      { name: 'revenue', type: 'number', label: 'Monthly Revenue' },
-      { name: 'costs', type: 'number', label: 'Monthly Costs' },
-      { name: 'employees', type: 'number', label: 'Number of Employees' }
+      { name: 'revenue', type: 'number', label: 'Monthly Revenue', min: 0 },
+      { name: 'costs', type: 'number', label: 'Monthly Costs', min: 0 },
+      { name: 'employees', type: 'number', label: 'Number of Employees', min: 1 }
     ];
+  }
+
+  validateField(field, value) {
+    super.validateField(field, value);
+    if (field.name === 'revenue' || field.name === 'costs') {
+      if (value < 0) {
+        throw new Error(`${field.label} must be non-negative`);
+      }
+    } else if (field.name === 'employees') {
+      if (value <= 0 || !Number.isInteger(value)) {
+        throw new Error('Number of employees must be a positive integer');
+      }
+    }
   }
 }

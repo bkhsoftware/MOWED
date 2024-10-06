@@ -20,7 +20,16 @@ import ResultsDisplay from './ResultsDisplay.vue';
                type="date"
                v-model="formData[field.name]"
                required>
-        
+
+        <select v-else-if="field.type === 'select'"
+                :id="field.name"
+                v-model="formData[field.name]"
+                required>
+          <option v-for="option in field.options" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>        
+
         <div v-else-if="field.type === 'array'">
           <input 
             v-for="(item, index) in formData[field.name]"
@@ -75,6 +84,14 @@ export default {
         moduleName: this.module.getName(),
         data: { formData: this.formData, result: this.result }
       });
+    },
+    submitForm() {
+      try {
+        this.module.validateInput(this.formData);
+        this.$emit('submit', this.formData);
+      } catch (error) {
+        alert(error.message);
+      }
     },
     addArrayItem(fieldName) {
       if (!this.formData[fieldName]) {

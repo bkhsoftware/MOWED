@@ -18,9 +18,11 @@ export default class Reforestation extends ModuleInterface {
     const areaCovered = this.calculateCoverage(allocation);
 
     const result = {
+      area: parseFloat(area.toFixed(2)),
+      budget: parseFloat(budget.toFixed(2)),
       totalTrees,
       allocation,
-      areaCovered,
+      areaCovered: parseFloat(areaCovered.toFixed(2)),
       date: new Date().toISOString().split('T')[0],
       message: `Optimal plan: Plant ${totalTrees} trees, covering ${areaCovered.toFixed(2)} square meters.`
     };
@@ -35,16 +37,26 @@ export default class Reforestation extends ModuleInterface {
 
   getInputFields() {
     return [
-      { name: 'area', type: 'number', label: 'Total Area (sq m)' },
-      { name: 'budget', type: 'number', label: 'Available Budget' },
+      { name: 'area', type: 'number', label: 'Total Area (sq m)', min: 0 },
+      { name: 'budget', type: 'number', label: 'Available Budget', min: 0 },
       { name: 'treeTypes', type: 'array', label: 'Tree Types', fields: [
         { name: 'name', type: 'text', label: 'Tree Name' },
-        { name: 'cost', type: 'number', label: 'Cost' },
-        { name: 'growthRate', type: 'number', label: 'Growth Rate' },
-        { name: 'carbonSequestration', type: 'number', label: 'Carbon Sequestration' },
-        { name: 'coverage', type: 'number', label: 'Coverage (sq m)' }
+        { name: 'cost', type: 'number', label: 'Cost', min: 0 },
+        { name: 'growthRate', type: 'number', label: 'Growth Rate', min: 0, max: 1, step: 0.01 },
+        { name: 'carbonSequestration', type: 'number', label: 'Carbon Sequestration', min: 0 },
+        { name: 'coverage', type: 'number', label: 'Coverage (sq m)', min: 0 }
       ]}
     ];
+  }
+
+  validateField(field, value) {
+    super.validateField(field, value);
+    if (field.type === 'number' && value < 0) {
+      throw new Error(`${field.label} must be non-negative`);
+    }
+    if (field.name === 'growthRate' && (value < 0 || value > 1)) {
+      throw new Error('Growth rate must be between 0 and 1');
+    }
   }
 
   getLastPlan() {
@@ -55,20 +67,20 @@ export default class Reforestation extends ModuleInterface {
   }
 
   getAverageCost(treeTypes) {
-    const totalCost = treeTypes.reduce((sum, tree) => sum + tree.cost, 0);
+    const totalCost = treeTypes.reduce((sum, tree) => sum + parseFloat(tree.cost), 0);
     return totalCost / treeTypes.length;
   }
 
   allocateTrees(totalTrees, treeTypes) {
-    const totalWeight = treeTypes.reduce((sum, tree) => sum + tree.growthRate * tree.carbonSequestration, 0);
+    const totalWeight = treeTypes.reduce((sum, tree) => sum + parseFloat(tree.growthRate) * parseFloat(tree.carbonSequestration), 0);
     return treeTypes.map(tree => {
-      const weight = tree.growthRate * tree.carbonSequestration;
+      const weight = parseFloat(tree.growthRate) * parseFloat(tree.carbonSequestration);
       const allocation = Math.round((weight / totalWeight) * totalTrees);
       return { ...tree, allocation };
     });
   }
 
   calculateCoverage(allocation) {
-    return allocation.reduce((total, tree) => total + tree.allocation * tree.coverage, 0);
+    return allocation.reduce((total, tree) => total + tree.allocation * parseFloat(tree.coverage), 0);
   }
 }

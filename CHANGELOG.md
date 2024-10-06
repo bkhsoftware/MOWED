@@ -5,6 +5,27 @@ All notable changes to the MOWED project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2024-10-07
+
+### Added
+- Enhanced ModuleInterface with improved validation methods
+- Implemented custom validation for each module
+- Added min, max, and step properties to input fields for better user guidance
+
+### Changed
+- Refactored all module components (Personal Finance, Education, Reforestation, Small Business) to use new shared components
+- Updated all modules to use the new ModuleForm component with enhanced input handling
+- Standardized error handling across all modules
+
+### Improved
+- Enhanced data validation and error reporting in all modules
+- Optimized calculation methods in Reforestation module
+- Improved consistency in result formatting across all modules
+
+### Fixed
+- Resolved issues with input validation in the Small Business module
+- Fixed potential data type issues in calculations across all modules
+
 ## [0.2.2] - 2024-10-06
 
 ### Added

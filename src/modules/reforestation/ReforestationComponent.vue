@@ -1,6 +1,6 @@
 <template>
   <div class="reforestation">
-    <ModuleForm :module="module" @result="handleResult" />
+    <ModuleForm :module="module" @submit="handleSubmit" />
     <ResultsDisplay v-if="result" :result="result" />
     <ReforestationChart v-if="result" :data="result" />
     <ChartComponent 
@@ -50,13 +50,17 @@ export default {
   },
   methods: {
     ...mapActions(['saveModuleData']),
-    handleResult(result) {
-      this.result = result;
-      this.saveModuleData({
-        moduleName: this.module.getName(),
-        data: { result: this.result }
-      });
-      this.updateChartData();
+    async handleSubmit(formData) {
+      try {
+        this.result = await this.module.solve(formData);
+        this.saveModuleData({
+          moduleName: this.module.getName(),
+          data: { result: this.result }
+        });
+        this.updateChartData();
+      } catch (error) {
+        alert(error.message);
+      }
     },
     updateChartData() {
       this.chartData = {

@@ -49,29 +49,32 @@ export default class ModuleInterface {
       if (!(field.name in input)) {
         throw new Error(`Missing required field: ${field.name}`);
       }
-      
-      switch (field.type) {
-        case 'number':
-          if (typeof input[field.name] !== 'number') {
-            throw new Error(`Field ${field.name} must be a number`);
-          }
-          break;
-        case 'array':
-          if (!Array.isArray(input[field.name])) {
-            throw new Error(`Field ${field.name} must be an array`);
-          }
-          break;
-        case 'object':
-          if (typeof input[field.name] !== 'object' || input[field.name] === null) {
-            throw new Error(`Field ${field.name} must be an object`);
-          }
-          break;
-        case 'date':
-          if (!(input[field.name] instanceof Date)) {
-            throw new Error(`Field ${field.name} must be a Date`);
-          }
-          break;
-      }
+      this.validateField(field, input[field.name]);
+    }
+  }
+
+  validateField(field, value) {
+    switch (field.type) {
+      case 'number':
+        if (typeof input[field.name] !== 'number') {
+          throw new Error(`Field ${field.name} must be a number`);
+        }
+        break;
+      case 'array':
+        if (!Array.isArray(input[field.name])) {
+          throw new Error(`Field ${field.name} must be an array`);
+        }
+        break;
+      case 'object':
+        if (typeof input[field.name] !== 'object' || input[field.name] === null) {
+          throw new Error(`Field ${field.name} must be an object`);
+        }
+        break;
+      case 'date':
+        if (!(input[field.name] instanceof Date)) {
+          throw new Error(`Field ${field.name} must be a Date`);
+        }
+        break;
     }
   }
 }

@@ -21,6 +21,8 @@ export default class PersonalFinance extends ModuleInterface {
     );
 
     const result = {
+      income: parseFloat(income.toFixed(2)),
+      expenses: parseFloat(expenses.toFixed(2)),
       availableSavings: parseFloat(availableSavings.toFixed(2)),
       monthsToGoal,
       monthsToGoalWithInvestment,
@@ -38,10 +40,17 @@ export default class PersonalFinance extends ModuleInterface {
 
   getInputFields() {
     return [
-      { name: 'income', type: 'number', label: 'Monthly Income' },
-      { name: 'expenses', type: 'number', label: 'Monthly Expenses' },
-      { name: 'savingsGoal', type: 'number', label: 'Savings Goal' },
-      { name: 'investmentRate', type: 'number', label: 'Annual Investment Return Rate (as decimal)' }
+      { name: 'income', type: 'number', label: 'Monthly Income', min: 0 },
+      { name: 'expenses', type: 'number', label: 'Monthly Expenses', min: 0 },
+      { name: 'savingsGoal', type: 'number', label: 'Savings Goal', min: 0 },
+      { name: 'investmentRate', type: 'number', label: 'Annual Investment Return Rate', min: 0, max: 1, step: 0.01 }
     ];
+  }
+
+  validateField(field, value) {
+    super.validateField(field, value);
+    if (field.name === 'investmentRate' && (value < 0 || value > 1)) {
+      throw new Error('Investment rate must be between 0 and 1');
+    }
   }
 }

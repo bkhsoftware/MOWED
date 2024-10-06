@@ -18,6 +18,10 @@ export default class Education extends ModuleInterface {
     const budgetPerStudent = budget / students;
 
     const result = {
+      students: parseInt(students),
+      teachers: parseInt(teachers),
+      classrooms: parseInt(classrooms),
+      budget: parseFloat(budget.toFixed(2)),
       studentsPerTeacher: parseFloat(studentsPerTeacher.toFixed(2)),
       studentsPerClassroom: parseFloat(studentsPerClassroom.toFixed(2)),
       budgetPerStudent: parseFloat(budgetPerStudent.toFixed(2)),
@@ -35,11 +39,18 @@ export default class Education extends ModuleInterface {
 
   getInputFields() {
     return [
-      { name: 'students', type: 'number', label: 'Number of Students' },
-      { name: 'teachers', type: 'number', label: 'Number of Teachers' },
-      { name: 'classrooms', type: 'number', label: 'Number of Classrooms' },
-      { name: 'budget', type: 'number', label: 'Total Budget' },
+      { name: 'students', type: 'number', label: 'Number of Students', min: 1 },
+      { name: 'teachers', type: 'number', label: 'Number of Teachers', min: 1 },
+      { name: 'classrooms', type: 'number', label: 'Number of Classrooms', min: 1 },
+      { name: 'budget', type: 'number', label: 'Total Budget', min: 0 },
       { name: 'date', type: 'date', label: 'Allocation Date' }
     ];
+  }
+
+  validateField(field, value) {
+    super.validateField(field, value);
+    if (field.type === 'number' && value <= 0) {
+      throw new Error(`${field.label} must be greater than 0`);
+    }
   }
 }
