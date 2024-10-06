@@ -1,30 +1,33 @@
 <template>
   <div class="personal-finance">
     <ModuleForm :module="module" @submit="handleSubmit">
-      <template v-slot:budgetAllocation="{ field, value, updateValue }">
-        <div class="budget-allocation">
+      <!-- ... (previous custom slots) -->
+      <template v-slot:categoryValues="{ field, value, updateValue }">
+        <div class="category-values">
           <h3>{{ field.label }}</h3>
-          <div v-for="category in field.categories" :key="category" class="budget-category">
+          <div v-for="category in field.categories" :key="category" class="category-input">
             <label>{{ category }}</label>
             <input 
               type="number" 
               :value="value[category] || 0" 
-              @input="updateBudgetAllocation(category, $event.target.value, updateValue)"
+              @input="updateCategoryValue(field.name, category, $event.target.value, updateValue)"
               min="0"
-              max="100"
-              step="0.1"
+              step="0.01"
             >
-            <span>%</span>
           </div>
-          <div class="total">Total: {{ totalAllocation }}%</div>
         </div>
       </template>
     </ModuleForm>
     <ResultsDisplay v-if="result" :result="result" />
+    <NetWorthTracker 
+      v-if="result" 
+      :assets="result.assets" 
+      :liabilities="result.liabilities" 
+    />
     <ChartComponent 
-      v-if="chartData"
-      :type="chartType"
-      :data="chartData"
+      v-if="budgetChartData"
+      :type="budgetChartType"
+      :data="budgetChartData"
       :options="chartOptions"
     />
   </div>
@@ -36,25 +39,29 @@ import PersonalFinance from './index';
 import ModuleForm from '../ModuleForm.vue';
 import ResultsDisplay from '../ResultsDisplay.vue';
 import ChartComponent from '../ChartComponent.vue';
+import NetWorthTracker from './NetWorthTracker.vue';
 
 export default {
   name: 'PersonalFinanceComponent',
   components: {
     ModuleForm,
     ResultsDisplay,
-    ChartComponent
+    ChartComponent,
+    NetWorthTracker
   },
   data() {
     return {
       module: new PersonalFinance(),
       result: null,
-      chartType: 'pie',
-      chartData: null,
+      budgetChartType: 'pie',
+      budgetChartData: null,
       chartOptions: {
         responsive: true,
         maintainAspectRatio: false,
       },
-      budgetAllocation: {}
+      budgetAllocation: {},
+      assets: {},
+      liabilities: {}
     };
   },
   computed: {
@@ -72,7 +79,7 @@ export default {
           moduleName: this.module.getName(),
           data: { result: this.result }
         });
-        this.updateChartData();
+        this.updateBudgetChartData();
       } catch (error) {
         alert(error.message);
       }
@@ -82,9 +89,15 @@ export default {
       this.budgetAllocation = { ...this.budgetAllocation, [category]: newValue };
       updateValue(this.budgetAllocation);
     },
-    updateChartData() {
+    updateCategoryValue(fieldName, category, value, updateValue) {
+      const newValue = Number(value);
+      const updatedField = { ...this[fieldName], [category]: newValue };
+      this[fieldName] = updatedField;
+      updateValue(updatedField);
+    },
+    updateBudgetChartData() {
       const allocation = this.result.budgetAllocation;
-      this.chartData = {
+      this.budgetChartData = {
         labels: Object.keys(allocation),
         datasets: [{
           data: Object.values(allocation),
@@ -100,18 +113,6 @@ export default {
             'rgba(40, 159, 64, 0.6)',
             'rgba(210, 199, 199, 0.6)',
           ],
-          borderColor: [
-            'rgba(255, 99, 132, 1)',
-            'rgba(54, 162, 235, 1)',
-            'rgba(255, 206, 86, 1)',
-            'rgba(75, 192, 192, 1)',
-            'rgba(153, 102, 255, 1)',
-            'rgba(255, 159, 64, 1)',
-            'rgba(199, 199, 199, 1)',
-            'rgba(83, 102, 255, 1)',
-            'rgba(40, 159, 64, 1)',
-            'rgba(210, 199, 199, 1)',
-          ],
           borderWidth: 1
         }]
       };
@@ -122,7 +123,9 @@ export default {
     if (savedData && savedData.result) {
       this.result = savedData.result;
       this.budgetAllocation = savedData.result.budgetAllocation;
-      this.updateChartData();
+      this.assets = savedData.result.assets;
+      this.liabilities = savedData.result.liabilities;
+      this.updateBudgetChartData();
     }
   }
 };
@@ -134,19 +137,19 @@ export default {
   margin: 0 auto;
 }
 
-.budget-allocation {
+.budget-allocation, .category-values {
   margin-bottom: 20px;
 }
 
-.budget-category {
+.budget-category, .category-input {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
 }
 
-.budget-category input {
-  width: 60px;
+.budget-category input, .category-input input {
+  width: 100px;
   margin: 0 10px;
 }
 

@@ -10,7 +10,7 @@
 ## 1. Personal Finance Module
 ### UI Development
 - [x] Create input fields for income, expenses, savings goals, and investment options
-- [ ] Implement a dynamic budget allocation interface
+- [x] Implement a dynamic budget allocation interface
 - [ ] Design a net worth tracker component
 
 ### Optimization Logic

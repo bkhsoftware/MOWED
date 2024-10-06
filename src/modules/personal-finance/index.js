@@ -8,6 +8,12 @@ export default class PersonalFinance extends ModuleInterface {
       'Housing', 'Transportation', 'Food', 'Utilities', 'Insurance', 
       'Healthcare', 'Debt Payments', 'Personal', 'Entertainment', 'Savings'
     ];
+    this.assetCategories = [
+      'Cash', 'Investments', 'Real Estate', 'Vehicles', 'Other Assets'
+    ];
+    this.liabilityCategories = [
+      'Mortgage', 'Car Loans', 'Student Loans', 'Credit Card Debt', 'Other Debts'
+    ];
   }
 
   _solve(input) {
@@ -16,8 +22,8 @@ export default class PersonalFinance extends ModuleInterface {
       budgetAllocation,
       savingsGoal, 
       investmentRate,
-      debtAmount,
-      debtInterestRate
+      assets,
+      liabilities
     } = input;
     
     const totalAllocated = Object.values(budgetAllocation).reduce((sum, value) => sum + value, 0);
@@ -44,9 +50,15 @@ export default class PersonalFinance extends ModuleInterface {
       Math.log(1 + investmentRate / 12) / 12
     );
 
+    // Calculate net worth
+    const totalAssets = Object.values(assets).reduce((sum, value) => sum + value, 0);
+    const totalLiabilities = Object.values(liabilities).reduce((sum, value) => sum + value, 0);
+    const netWorth = totalAssets - totalLiabilities;
+
+    const debtAmount = totalLiabilities;
     const monthsToPayDebt = debtAmount > 0 ? 
-      Math.ceil(Math.log(1 - debtAmount * (debtInterestRate / 12) / availableSavings) / 
-      Math.log(1 + debtInterestRate / 12)) : 0;
+      Math.ceil(Math.log(1 - debtAmount * (investmentRate / 12) / availableSavings) / 
+      Math.log(1 + investmentRate / 12)) : 0;
 
     const result = {
       monthlyIncome: parseFloat(monthlyIncome.toFixed(2)),
@@ -56,8 +68,13 @@ export default class PersonalFinance extends ModuleInterface {
       monthsToGoal,
       monthsToGoalWithInvestment,
       monthsToPayDebt,
+      totalAssets: parseFloat(totalAssets.toFixed(2)),
+      totalLiabilities: parseFloat(totalLiabilities.toFixed(2)),
+      netWorth: parseFloat(netWorth.toFixed(2)),
+      assets,
+      liabilities,
       date: new Date().toISOString().split('T')[0],
-      message: `With your current budget allocation, you can save $${availableSavings.toFixed(2)} per month. It will take approximately ${monthsToGoal} months to reach your savings goal without investment, or ${monthsToGoalWithInvestment} months with investment. If you have debt, it will take about ${monthsToPayDebt} months to pay it off.`
+      message: `Your current net worth is $${netWorth.toFixed(2)}. With your current budget allocation, you can save $${availableSavings.toFixed(2)} per month. It will take approximately ${monthsToGoal} months to reach your savings goal without investment, or ${monthsToGoalWithInvestment} months with investment. If you have debt, it will take about ${monthsToPayDebt} months to pay it off.`
     };
 
     EventBus.emit('updateModuleState', {
@@ -79,21 +96,38 @@ export default class PersonalFinance extends ModuleInterface {
       },
       { name: 'savingsGoal', type: 'number', label: 'Savings Goal', min: 0, step: 0.01 },
       { name: 'investmentRate', type: 'number', label: 'Annual Investment Return Rate', min: 0, max: 1, step: 0.01 },
-      { name: 'debtAmount', type: 'number', label: 'Current Debt Amount', min: 0, step: 0.01 },
-      { name: 'debtInterestRate', type: 'number', label: 'Annual Debt Interest Rate', min: 0, max: 1, step: 0.01 }
+      { 
+        name: 'assets', 
+        type: 'categoryValues', 
+        label: 'Assets', 
+        categories: this.assetCategories 
+      },
+      { 
+        name: 'liabilities', 
+        type: 'categoryValues', 
+        label: 'Liabilities', 
+        categories: this.liabilityCategories 
+      }
     ];
   }
 
   validateField(field, value) {
     super.validateField(field, value);
-    if ((field.name === 'investmentRate' || field.name === 'debtInterestRate') && (value < 0 || value > 1)) {
-      throw new Error(`${field.label} must be between 0 and 1`);
+    if (field.name === 'investmentRate' && (value < 0 || value > 1)) {
+      throw new Error('Investment rate must be between 0 and 1');
     }
     if (field.name === 'budgetAllocation') {
       const total = Object.values(value).reduce((sum, allocation) => sum + allocation, 0);
       if (Math.abs(total - 100) > 0.01) {
         throw new Error('Budget allocation must sum to 100%');
       }
+    }
+    if (field.name === 'assets' || field.name === 'liabilities') {
+      Object.values(value).forEach(amount => {
+        if (amount < 0) {
+          throw new Error(`${field.label} values must be non-negative`);
+        }
+      });
     }
   }
 }
