@@ -5,6 +5,25 @@ All notable changes to the MOWED project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2024-10-06
+
+### Added
+- Created ResultsDisplay component for standardized result presentation
+- Developed reusable ChartComponent for flexible data visualization using Chart.js
+
+### Changed
+- Started refactoring module components to use new shared components (ResultsDisplay, ChartComponent)
+- Began standardizing module interface and result structure across modules
+
+### In Progress
+- Enhancing ModuleForm component to handle various input types
+- Refining ModuleInterface to accommodate all module requirements
+- Improving error handling and validation for all modules
+
+### Improved
+- Enhanced data visualization capabilities in implemented modules
+- Started optimizing code reusability and maintainability through shared components
+
 ## [0.2.1] - 2024-09-29
 
 ### Added

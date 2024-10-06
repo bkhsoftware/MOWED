@@ -4,8 +4,8 @@
 - [ ] Refine ModuleInterface to accommodate all module requirements
 - [ ] Enhance ModuleForm component to handle various input types
 - [ ] Implement error handling and validation for all modules
-- [ ] Create a standardized results display component
-- [ ] Develop a reusable charting component using D3.js or Chart.js
+- [x] Create a standardized results display component
+- [x] Develop a reusable charting component using D3.js or Chart.js
 
 ## 1. Personal Finance Module
 ### UI Development

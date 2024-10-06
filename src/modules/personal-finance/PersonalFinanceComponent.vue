@@ -1,149 +1,98 @@
 <template>
   <div class="personal-finance">
-    <h2>{{ module.getName() }}</h2>
-    <p>{{ module.getDescription() }}</p>
-    <form @submit.prevent="solveOptimization">
-      <div v-for="field in module.getInputFields()" :key="field.name">
-        <label :for="field.name">{{ field.label }}</label>
-        <input 
-          :id="field.name" 
-          :type="field.type" 
-          v-model.number="formData[field.name]"
-          :min="0"
-          required
-        >
-      </div>
-      <button type="submit">Optimize</button>
-    </form>
-    <div v-if="result" class="result">
-      <h3>Result:</h3>
-      <p>{{ result.message }}</p>
-      <p>Monthly savings: ${{ result.availableSavings ? result.availableSavings.toFixed(2) : '0.00' }}</p>
-      <p>Time to reach goal: {{ result.monthsToGoal || 0 }} months</p>
-    </div>
-    <div v-if="result" class="chart-container">
-      <canvas ref="chartCanvas"></canvas>
-    </div>
+    <ModuleForm :module="module" @result="handleResult" />
+    <ResultsDisplay v-if="result" :result="result" />
+    <ChartComponent 
+      v-if="chartData"
+      :type="chartType"
+      :data="chartData"
+      :options="chartOptions"
+    />
   </div>
 </template>
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
 import PersonalFinance from './index';
-import Chart from 'chart.js/auto';
-import EventBus from '../../core/EventBus';
+import ModuleForm from '../ModuleForm.vue';
+import ResultsDisplay from '../ResultsDisplay.vue';
+import ChartComponent from '../ChartComponent.vue';
 
 export default {
   name: 'PersonalFinanceComponent',
+  components: {
+    ModuleForm,
+    ResultsDisplay,
+    ChartComponent
+  },
   data() {
     return {
       module: new PersonalFinance(),
-      formData: {},
       result: null,
-      chart: null
+      chartType: 'bar',
+      chartData: null,
+      chartOptions: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
     };
   },
   computed: {
     ...mapGetters(['getModuleData'])
   },
   methods: {
-    ...mapActions(['performAction']),
-    async solveOptimization() {
-      try {
-        if (this.validateInput()) {
-          const result = await this.performAction({
-            type: 'solve',
-            payload: {
-              moduleName: this.module.getName(),
-              input: JSON.parse(JSON.stringify(this.formData))
-            }
-          });
-          this.result = result;
-          this.$nextTick(() => {
-            this.createChart();
-          });
-        }
-      } catch (error) {
-        console.error('Error in solveOptimization:', error);
-        alert(`An error occurred while optimizing: ${error.message}`);
-      }
-    },
-    validateInput() {
-      // Add input validation logic here
-      return true; // Return false if validation fails
-    },
-    createChart() {
-      const ctx = this.$refs.chartCanvas.getContext('2d');
-      
-      if (this.chart) {
-        this.chart.destroy();
-      }
-      
-      this.chart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: ['Income', 'Expenses', 'Savings'],
-          datasets: [{
-            label: 'Monthly Finances',
-            data: [
-              this.formData.income,
-              this.formData.expenses,
-              this.result.availableSavings
-            ],
-            backgroundColor: [
-              'rgba(75, 192, 192, 0.6)',
-              'rgba(255, 99, 132, 0.6)',
-              'rgba(54, 162, 235, 0.6)'
-            ],
-            borderColor: [
-              'rgba(75, 192, 192, 1)',
-              'rgba(255, 99, 132, 1)',
-              'rgba(54, 162, 235, 1)'
-            ],
-            borderWidth: 1
-          }]
-        },
-        options: {
-          scales: {
-            y: {
-              beginAtZero: true
-            }
-          },
-          responsive: true,
-          maintainAspectRatio: false
-        }
+    ...mapActions(['saveModuleData']),
+    handleResult(result) {
+      this.result = result;
+      this.saveModuleData({
+        moduleName: this.module.getName(),
+        data: { result: this.result }
       });
+      this.updateChartData();
+    },
+    updateChartData() {
+      this.chartData = {
+        labels: ['Income', 'Expenses', 'Savings'],
+        datasets: [{
+          label: 'Monthly Finances',
+          data: [
+            this.result.income,
+            this.result.expenses,
+            this.result.availableSavings
+          ],
+          backgroundColor: [
+            'rgba(75, 192, 192, 0.6)',
+            'rgba(255, 99, 132, 0.6)',
+            'rgba(54, 162, 235, 0.6)'
+          ],
+          borderColor: [
+            'rgba(75, 192, 192, 1)',
+            'rgba(255, 99, 132, 1)',
+            'rgba(54, 162, 235, 1)'
+          ],
+          borderWidth: 1
+        }]
+      };
     }
   },
   created() {
     const savedData = this.getModuleData(this.module.getName());
-    if (savedData && savedData.formData) {
-      this.formData = savedData.formData;
+    if (savedData && savedData.result) {
       this.result = savedData.result;
+      this.updateChartData();
     }
-
-    EventBus.on('solveOptimizationError', ({ module, error }) => {
-      if (module === this.module.getName()) {
-        alert(`An error occurred while optimizing: ${error.message}`);
-      }
-    });
-  },
-  mounted() {
-    if (this.result) {
-      this.$nextTick(() => {
-        this.createChart();
-      });
-    }
-  },
-  beforeUnmount() {
-    EventBus.off('solveOptimizationError');
   }
 };
 </script>
 
 <style scoped>
-.chart-container {
-  height: 300px;
-  margin-top: 20px;
+.personal-finance {
+  max-width: 800px;
+  margin: 0 auto;
 }
 </style>

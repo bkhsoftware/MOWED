@@ -21,10 +21,10 @@ export default class Reforestation extends ModuleInterface {
       totalTrees,
       allocation,
       areaCovered,
-      message: `Optimal plan: Plant ${totalTrees} trees, covering ${areaCovered} square meters.`
+      date: new Date().toISOString().split('T')[0],
+      message: `Optimal plan: Plant ${totalTrees} trees, covering ${areaCovered.toFixed(2)} square meters.`
     };
 
-    // Update module-specific state
     EventBus.emit('updateModuleState', {
       moduleName: this.getName(),
       moduleState: { lastPlan: result }
@@ -37,7 +37,13 @@ export default class Reforestation extends ModuleInterface {
     return [
       { name: 'area', type: 'number', label: 'Total Area (sq m)' },
       { name: 'budget', type: 'number', label: 'Available Budget' },
-      { name: 'treeTypes', type: 'array', label: 'Tree Types' }
+      { name: 'treeTypes', type: 'array', label: 'Tree Types', fields: [
+        { name: 'name', type: 'text', label: 'Tree Name' },
+        { name: 'cost', type: 'number', label: 'Cost' },
+        { name: 'growthRate', type: 'number', label: 'Growth Rate' },
+        { name: 'carbonSequestration', type: 'number', label: 'Carbon Sequestration' },
+        { name: 'coverage', type: 'number', label: 'Coverage (sq m)' }
+      ]}
     ];
   }
 

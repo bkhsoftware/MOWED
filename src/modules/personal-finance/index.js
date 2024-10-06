@@ -7,24 +7,30 @@ export default class PersonalFinance extends ModuleInterface {
   }
 
   _solve(input) {
-    const { income, expenses, savingsGoal } = input;
+    const { income, expenses, savingsGoal, investmentRate } = input;
     const availableSavings = income - expenses;
-    const monthsToGoal = Math.ceil(savingsGoal / availableSavings);
-
+    
     if (availableSavings <= 0) {
       throw new Error('Expenses cannot be greater than or equal to income');
     }
 
+    const monthsToGoal = Math.ceil(savingsGoal / availableSavings);
+    const monthsToGoalWithInvestment = Math.ceil(
+      Math.log(savingsGoal / availableSavings * (investmentRate / 12) + 1) / 
+      Math.log(1 + investmentRate / 12) / 12
+    );
+
     const result = {
-      availableSavings,
+      availableSavings: parseFloat(availableSavings.toFixed(2)),
       monthsToGoal,
-      message: `With your current income and expenses, you can save ${availableSavings} per month. It will take approximately ${monthsToGoal} months to reach your savings goal.`
+      monthsToGoalWithInvestment,
+      date: new Date().toISOString().split('T')[0],
+      message: `With your current income and expenses, you can save $${availableSavings.toFixed(2)} per month. It will take approximately ${monthsToGoal} months to reach your savings goal without investment, or ${monthsToGoalWithInvestment} months with investment.`
     };
 
-    // Update module-specific state
     EventBus.emit('updateModuleState', {
       moduleName: this.getName(),
-      moduleState: { lastCalculation: { availableSavings, monthsToGoal } }
+      moduleState: { lastCalculation: result }
     });
 
     return result;
@@ -34,14 +40,8 @@ export default class PersonalFinance extends ModuleInterface {
     return [
       { name: 'income', type: 'number', label: 'Monthly Income' },
       { name: 'expenses', type: 'number', label: 'Monthly Expenses' },
-      { name: 'savingsGoal', type: 'number', label: 'Savings Goal' }
+      { name: 'savingsGoal', type: 'number', label: 'Savings Goal' },
+      { name: 'investmentRate', type: 'number', label: 'Annual Investment Return Rate (as decimal)' }
     ];
-  }
-
-  getLastCalculation() {
-    // This method now needs to be implemented differently, possibly using the store or EventBus
-    // For now, we'll leave it as a placeholder
-    console.warn('getLastCalculation needs to be implemented');
-    return null;
   }
 }

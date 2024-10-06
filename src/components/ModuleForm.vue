@@ -1,3 +1,5 @@
+import ResultsDisplay from './ResultsDisplay.vue';
+
 <template>
   <div class="module-form">
     <h2>{{ module.getName() }}</h2>
@@ -5,15 +7,21 @@
     <form @submit.prevent="solveOptimization">
       <div v-for="field in module.getInputFields()" :key="field.name">
         <label :for="field.name">{{ field.label }}</label>
-        <input 
-          v-if="field.type !== 'array'"
-          :id="field.name" 
-          :type="field.type" 
-          v-model="formData[field.name]"
-          :min="0"
-          required
-        >
-        <div v-else>
+        
+        <input v-if="field.type === 'text' || field.type === 'number'"
+               :id="field.name" 
+               :type="field.type" 
+               v-model="formData[field.name]"
+               :min="field.type === 'number' ? 0 : undefined"
+               required>
+        
+        <input v-else-if="field.type === 'date'"
+               :id="field.name"
+               type="date"
+               v-model="formData[field.name]"
+               required>
+        
+        <div v-else-if="field.type === 'array'">
           <input 
             v-for="(item, index) in formData[field.name]"
             :key="index"
@@ -22,18 +30,20 @@
           >
           <button @click.prevent="addArrayItem(field.name)">Add {{ field.label }}</button>
         </div>
+        
+        <div v-else-if="field.type === 'object'">
+          <div v-for="(subField, subFieldName) in field.fields" :key="subFieldName">
+            <label :for="`${field.name}.${subFieldName}`">{{ subField.label }}</label>
+            <input :id="`${field.name}.${subFieldName}`"
+                   :type="subField.type"
+                   v-model="formData[field.name][subFieldName]"
+                   required>
+          </div>
+        </div>
       </div>
       <button type="submit">Optimize</button>
     </form>
-    <div v-if="result" class="result">
-      <h3>Result:</h3>
-      <p>{{ result.message }}</p>
-      <ul>
-        <li v-for="(value, key) in result" :key="key" v-if="key !== 'message'">
-          {{ key }}: {{ value }}
-        </li>
-      </ul>
-    </div>
+    <ResultsDisplay v-if="result" :result="result" />
   </div>
 </template>
 
@@ -42,6 +52,9 @@ import { mapActions } from 'vuex';
 
 export default {
   name: 'ModuleForm',
+  components: {
+    ResultsDisplay
+  },
   props: {
     module: {
       type: Object,
@@ -72,7 +85,18 @@ export default {
   },
   created() {
     this.module.getInputFields().forEach(field => {
-      this.$set(this.formData, field.name, field.type === 'array' ? [] : '');
+      if (field.type === 'array') {
+        this.$set(this.formData, field.name, []);
+      } else if (field.type === 'object') {
+        this.$set(this.formData, field.name, {});
+        Object.keys(field.fields).forEach(subFieldName => {
+          this.$set(this.formData[field.name], subFieldName, '');
+        });
+      } else if (field.type === 'date') {
+        this.$set(this.formData, field.name, new Date().toISOString().split('T')[0]);
+      } else {
+        this.$set(this.formData, field.name, '');
+      }
     });
   }
 };

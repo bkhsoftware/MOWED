@@ -18,13 +18,15 @@ export default class SmallBusiness extends ModuleInterface {
     const profitPerEmployee = profit / employees;
 
     const result = {
-      profit,
-      revenuePerEmployee,
-      profitPerEmployee,
-      message: `Business analysis: Profit: $${profit}, Revenue per employee: $${revenuePerEmployee.toFixed(2)}, Profit per employee: $${profitPerEmployee.toFixed(2)}.`
+      revenue: parseFloat(revenue.toFixed(2)),
+      costs: parseFloat(costs.toFixed(2)),
+      profit: parseFloat(profit.toFixed(2)),
+      revenuePerEmployee: parseFloat(revenuePerEmployee.toFixed(2)),
+      profitPerEmployee: parseFloat(profitPerEmployee.toFixed(2)),
+      date: new Date().toISOString().split('T')[0],
+      message: `Business analysis: Profit: $${profit.toFixed(2)}, Revenue per employee: $${revenuePerEmployee.toFixed(2)}, Profit per employee: $${profitPerEmployee.toFixed(2)}.`
     };
 
-    // Update module-specific state
     EventBus.emit('updateModuleState', {
       moduleName: this.getName(),
       moduleState: { lastAnalysis: result }
@@ -39,12 +41,5 @@ export default class SmallBusiness extends ModuleInterface {
       { name: 'costs', type: 'number', label: 'Monthly Costs' },
       { name: 'employees', type: 'number', label: 'Number of Employees' }
     ];
-  }
-
-  getLastAnalysis() {
-    // This method now needs to be implemented differently, possibly using the store or EventBus
-    // For now, we'll leave it as a placeholder
-    console.warn('getLastAnalysis needs to be implemented');
-    return null;
   }
 }
