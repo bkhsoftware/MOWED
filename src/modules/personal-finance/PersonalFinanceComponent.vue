@@ -1,6 +1,25 @@
 <template>
   <div class="personal-finance">
-    <ModuleForm :module="module" @submit="handleSubmit" />
+    <ModuleForm :module="module" @submit="handleSubmit">
+      <template v-slot:budgetAllocation="{ field, value, updateValue }">
+        <div class="budget-allocation">
+          <h3>{{ field.label }}</h3>
+          <div v-for="category in field.categories" :key="category" class="budget-category">
+            <label>{{ category }}</label>
+            <input 
+              type="number" 
+              :value="value[category] || 0" 
+              @input="updateBudgetAllocation(category, $event.target.value, updateValue)"
+              min="0"
+              max="100"
+              step="0.1"
+            >
+            <span>%</span>
+          </div>
+          <div class="total">Total: {{ totalAllocation }}%</div>
+        </div>
+      </template>
+    </ModuleForm>
     <ResultsDisplay v-if="result" :result="result" />
     <ChartComponent 
       v-if="chartData"
@@ -29,21 +48,20 @@ export default {
     return {
       module: new PersonalFinance(),
       result: null,
-      chartType: 'bar',
+      chartType: 'pie',
       chartData: null,
       chartOptions: {
         responsive: true,
         maintainAspectRatio: false,
-        scales: {
-          y: {
-            beginAtZero: true
-          }
-        }
-      }
+      },
+      budgetAllocation: {}
     };
   },
   computed: {
-    ...mapGetters(['getModuleData'])
+    ...mapGetters(['getModuleData']),
+    totalAllocation() {
+      return Object.values(this.budgetAllocation).reduce((sum, value) => sum + Number(value), 0).toFixed(1);
+    }
   },
   methods: {
     ...mapActions(['saveModuleData']),
@@ -59,28 +77,40 @@ export default {
         alert(error.message);
       }
     },
+    updateBudgetAllocation(category, value, updateValue) {
+      const newValue = Number(value);
+      this.budgetAllocation = { ...this.budgetAllocation, [category]: newValue };
+      updateValue(this.budgetAllocation);
+    },
     updateChartData() {
+      const allocation = this.result.budgetAllocation;
       this.chartData = {
-        labels: ['Income', 'Expenses', 'Savings', 'Debt'],
+        labels: Object.keys(allocation),
         datasets: [{
-          label: 'Monthly Finances',
-          data: [
-            this.result.monthlyIncome,
-            this.result.monthlyExpenses,
-            this.result.availableSavings,
-            this.result.debtAmount || 0
-          ],
+          data: Object.values(allocation),
           backgroundColor: [
-            'rgba(75, 192, 192, 0.6)',
             'rgba(255, 99, 132, 0.6)',
             'rgba(54, 162, 235, 0.6)',
-            'rgba(255, 206, 86, 0.6)'
+            'rgba(255, 206, 86, 0.6)',
+            'rgba(75, 192, 192, 0.6)',
+            'rgba(153, 102, 255, 0.6)',
+            'rgba(255, 159, 64, 0.6)',
+            'rgba(199, 199, 199, 0.6)',
+            'rgba(83, 102, 255, 0.6)',
+            'rgba(40, 159, 64, 0.6)',
+            'rgba(210, 199, 199, 0.6)',
           ],
           borderColor: [
-            'rgba(75, 192, 192, 1)',
             'rgba(255, 99, 132, 1)',
             'rgba(54, 162, 235, 1)',
-            'rgba(255, 206, 86, 1)'
+            'rgba(255, 206, 86, 1)',
+            'rgba(75, 192, 192, 1)',
+            'rgba(153, 102, 255, 1)',
+            'rgba(255, 159, 64, 1)',
+            'rgba(199, 199, 199, 1)',
+            'rgba(83, 102, 255, 1)',
+            'rgba(40, 159, 64, 1)',
+            'rgba(210, 199, 199, 1)',
           ],
           borderWidth: 1
         }]
@@ -91,6 +121,7 @@ export default {
     const savedData = this.getModuleData(this.module.getName());
     if (savedData && savedData.result) {
       this.result = savedData.result;
+      this.budgetAllocation = savedData.result.budgetAllocation;
       this.updateChartData();
     }
   }
@@ -101,5 +132,26 @@ export default {
 .personal-finance {
   max-width: 800px;
   margin: 0 auto;
+}
+
+.budget-allocation {
+  margin-bottom: 20px;
+}
+
+.budget-category {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.budget-category input {
+  width: 60px;
+  margin: 0 10px;
+}
+
+.total {
+  font-weight: bold;
+  margin-top: 10px;
 }
 </style>

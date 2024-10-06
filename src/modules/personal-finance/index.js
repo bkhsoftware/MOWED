@@ -4,22 +4,38 @@ import EventBus from '../../core/EventBus';
 export default class PersonalFinance extends ModuleInterface {
   constructor() {
     super('Personal Finance', 'Optimize your personal financial decisions');
+    this.budgetCategories = [
+      'Housing', 'Transportation', 'Food', 'Utilities', 'Insurance', 
+      'Healthcare', 'Debt Payments', 'Personal', 'Entertainment', 'Savings'
+    ];
   }
 
   _solve(input) {
     const { 
       monthlyIncome, 
-      monthlyExpenses, 
+      budgetAllocation,
       savingsGoal, 
       investmentRate,
       debtAmount,
       debtInterestRate
     } = input;
     
-    const availableSavings = monthlyIncome - monthlyExpenses;
+    const totalAllocated = Object.values(budgetAllocation).reduce((sum, value) => sum + value, 0);
+    if (Math.abs(totalAllocated - 100) > 0.01) {
+      throw new Error('Budget allocation must sum to 100%');
+    }
+
+    const expenses = this.budgetCategories.reduce((sum, category) => {
+      if (category !== 'Savings') {
+        return sum + (monthlyIncome * budgetAllocation[category] / 100);
+      }
+      return sum;
+    }, 0);
+
+    const availableSavings = monthlyIncome * budgetAllocation['Savings'] / 100;
     
     if (availableSavings <= 0) {
-      throw new Error('Expenses cannot be greater than or equal to income');
+      throw new Error('Savings allocation must be greater than 0');
     }
 
     const monthsToGoal = Math.ceil(savingsGoal / availableSavings);
@@ -34,13 +50,14 @@ export default class PersonalFinance extends ModuleInterface {
 
     const result = {
       monthlyIncome: parseFloat(monthlyIncome.toFixed(2)),
-      monthlyExpenses: parseFloat(monthlyExpenses.toFixed(2)),
+      expenses: parseFloat(expenses.toFixed(2)),
       availableSavings: parseFloat(availableSavings.toFixed(2)),
+      budgetAllocation,
       monthsToGoal,
       monthsToGoalWithInvestment,
       monthsToPayDebt,
       date: new Date().toISOString().split('T')[0],
-      message: `With your current income and expenses, you can save $${availableSavings.toFixed(2)} per month. It will take approximately ${monthsToGoal} months to reach your savings goal without investment, or ${monthsToGoalWithInvestment} months with investment. If you have debt, it will take about ${monthsToPayDebt} months to pay it off.`
+      message: `With your current budget allocation, you can save $${availableSavings.toFixed(2)} per month. It will take approximately ${monthsToGoal} months to reach your savings goal without investment, or ${monthsToGoalWithInvestment} months with investment. If you have debt, it will take about ${monthsToPayDebt} months to pay it off.`
     };
 
     EventBus.emit('updateModuleState', {
@@ -54,7 +71,12 @@ export default class PersonalFinance extends ModuleInterface {
   getInputFields() {
     return [
       { name: 'monthlyIncome', type: 'number', label: 'Monthly Income', min: 0, step: 0.01 },
-      { name: 'monthlyExpenses', type: 'number', label: 'Monthly Expenses', min: 0, step: 0.01 },
+      { 
+        name: 'budgetAllocation', 
+        type: 'budgetAllocation', 
+        label: 'Budget Allocation', 
+        categories: this.budgetCategories 
+      },
       { name: 'savingsGoal', type: 'number', label: 'Savings Goal', min: 0, step: 0.01 },
       { name: 'investmentRate', type: 'number', label: 'Annual Investment Return Rate', min: 0, max: 1, step: 0.01 },
       { name: 'debtAmount', type: 'number', label: 'Current Debt Amount', min: 0, step: 0.01 },
@@ -66,6 +88,12 @@ export default class PersonalFinance extends ModuleInterface {
     super.validateField(field, value);
     if ((field.name === 'investmentRate' || field.name === 'debtInterestRate') && (value < 0 || value > 1)) {
       throw new Error(`${field.label} must be between 0 and 1`);
+    }
+    if (field.name === 'budgetAllocation') {
+      const total = Object.values(value).reduce((sum, allocation) => sum + allocation, 0);
+      if (Math.abs(total - 100) > 0.01) {
+        throw new Error('Budget allocation must sum to 100%');
+      }
     }
   }
 }
