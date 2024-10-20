@@ -7,6 +7,10 @@
       :assets="result.assets" 
       :liabilities="result.liabilities" 
     />
+    <RetirementDashboard
+      v-if="result && result.retirementProjection"
+      :retirementProjection="result.retirementProjection"
+    />
     <GoalTracker 
       v-if="result && result.goalProgress" 
       :goals="result.goalProgress" 
@@ -27,6 +31,7 @@ import ModuleForm from '../../components/ModuleForm.vue';
 import ResultsDisplay from '../../components/ResultsDisplay.vue';
 import ChartComponent from '../../components/ChartComponent.vue';
 import NetWorthTracker from './NetWorthTracker.vue';
+import RetirementDashboard from './RetirementDashboard.vue';
 import GoalTracker from './GoalTracker.vue';
 
 export default {
@@ -36,6 +41,7 @@ export default {
     ResultsDisplay,
     ChartComponent,
     NetWorthTracker,
+    RetirementDashboard,
     GoalTracker
   },
   data() {

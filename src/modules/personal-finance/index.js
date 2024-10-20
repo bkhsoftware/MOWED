@@ -92,10 +92,43 @@ export default class PersonalFinance extends ModuleInterface {
 
     const goalProgress = this.trackGoals(input, result);
 
+    // Retirement calculations
+    const yearsUntilRetirement = input.retirementAge - input.age;
+    const monthsUntilRetirement = yearsUntilRetirement * 12;
+    const retirementSavingsAtRetirement = this.calculateRetirementSavings(
+      input.retirementSavings,
+      input.monthlyRetirementContribution,
+      monthsUntilRetirement,
+      input.investmentRate / 12
+    );
+    const monthlyRetirementIncome = this.calculateRetirementIncome(
+      retirementSavingsAtRetirement,
+      input.investmentRate / 12,
+      input.yearsInRetirement * 12 // Use user-provided years in retirement
+    );
+
     return {
       ...result,
-      goalProgress
+      goalProgress,
+      retirementProjection: {
+        yearsUntilRetirement,
+        yearsInRetirement: input.yearsInRetirement,
+        retirementSavingsAtRetirement,
+        monthlyRetirementIncome,
+        desiredMonthlyRetirementIncome: input.desiredRetirementIncome / 12,
+        retirementIncomeGap: (input.desiredRetirementIncome / 12) - monthlyRetirementIncome
+      }
     };
+  }
+
+  calculateRetirementSavings(currentSavings, monthlyContribution, months, monthlyRate) {
+    return currentSavings * Math.pow(1 + monthlyRate, months) + 
+           monthlyContribution * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
+  }
+
+  calculateRetirementIncome(savingsAtRetirement, monthlyRate, monthsInRetirement) {
+    return savingsAtRetirement * (monthlyRate * Math.pow(1 + monthlyRate, monthsInRetirement)) / 
+           (Math.pow(1 + monthlyRate, monthsInRetirement) - 1);
   }
 
   getInputFields() {
@@ -133,7 +166,13 @@ export default class PersonalFinance extends ModuleInterface {
         name: 'goals',
         type: 'goals',
         label: 'Financial Goals'
-      }
+      },
+      { name: 'age', type: 'number', label: 'Current Age', min: 18, max: 100, step: 1 },
+      { name: 'retirementAge', type: 'number', label: 'Desired Retirement Age', min: 18, max: 100, step: 1 },
+      { name: 'yearsInRetirement', type: 'number', label: 'Expected Years in Retirement', min: 1, max: 50, step: 1 },
+      { name: 'retirementSavings', type: 'number', label: 'Current Retirement Savings', min: 0, step: 100 },
+      { name: 'monthlyRetirementContribution', type: 'number', label: 'Monthly Retirement Contribution', min: 0, step: 10 },
+      { name: 'desiredRetirementIncome', type: 'number', label: 'Desired Annual Retirement Income', min: 0, step: 1000 }
     ];
   }
 
