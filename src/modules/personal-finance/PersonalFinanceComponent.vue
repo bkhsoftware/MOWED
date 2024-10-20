@@ -7,6 +7,10 @@
       :assets="result.assets" 
       :liabilities="result.liabilities" 
     />
+    <GoalTracker 
+      v-if="result && result.goalProgress" 
+      :goals="result.goalProgress" 
+    />
     <ChartComponent 
       v-if="budgetChartData"
       :type="budgetChartType"
@@ -23,6 +27,7 @@ import ModuleForm from '../../components/ModuleForm.vue';
 import ResultsDisplay from '../../components/ResultsDisplay.vue';
 import ChartComponent from '../../components/ChartComponent.vue';
 import NetWorthTracker from './NetWorthTracker.vue';
+import GoalTracker from './GoalTracker.vue';
 
 export default {
   name: 'PersonalFinanceComponent',
@@ -30,7 +35,8 @@ export default {
     ModuleForm,
     ResultsDisplay,
     ChartComponent,
-    NetWorthTracker
+    NetWorthTracker,
+    GoalTracker
   },
   data() {
     return {
@@ -57,7 +63,10 @@ export default {
     ...mapActions(['saveModuleData']),
     async handleSubmit(formData) {
       try {
-        this.result = await this.module.solve(formData);
+        this.result = await this.module.solve({
+          ...formData,
+          incomeGrowthRate: formData.incomeGrowthRate || 0
+        });
         this.saveModuleData({
           moduleName: this.module.getName(),
           data: { result: this.result }

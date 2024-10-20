@@ -21,6 +21,7 @@ export default class PersonalFinance extends ModuleInterface {
       'Student Loans': ['Federal Student Loans', 'Private Student Loans'],
       'Other Debts': ['Medical Debt', 'Tax Debt']
     };
+    this.goals = [];
   }
 
   _solve(input) {
@@ -89,7 +90,12 @@ export default class PersonalFinance extends ModuleInterface {
       moduleState: { lastCalculation: result }
     });
 
-    return result;
+    const goalProgress = this.trackGoals(input, result);
+
+    return {
+      ...result,
+      goalProgress
+    };
   }
 
   getInputFields() {
@@ -114,8 +120,53 @@ export default class PersonalFinance extends ModuleInterface {
         type: 'nestedCategoryValues', 
         label: 'Liabilities', 
         categories: this.liabilityCategories 
+      },
+      {
+        name: 'incomeGrowthRate',
+        type: 'number',
+        label: 'Monthly Income Growth Rate (%)',
+        min: 0,
+        max: 100,
+        step: 0.1
+      },
+      {
+        name: 'goals',
+        type: 'goals',
+        label: 'Financial Goals'
       }
     ];
+  }
+
+  trackGoals(input, result) {
+    const monthlyIncomeGrowth = (input.incomeGrowthRate / 100) * result.monthlyIncome;
+    
+    return input.goals.map(goal => {
+      let progress = 0;
+      let timeToGoal = 0;
+
+      switch (goal.type) {
+        case 'savings':
+          progress = (result.totalAssets - result.totalLiabilities) / goal.target;
+          timeToGoal = (goal.target - (result.totalAssets - result.totalLiabilities)) / result.availableSavings;
+          break;
+        case 'debt_reduction':
+          progress = 1 - (result.totalLiabilities / goal.target);
+          timeToGoal = result.totalLiabilities / result.availableSavings;
+          break;
+        case 'income':
+          progress = result.monthlyIncome / goal.target;
+          timeToGoal = monthlyIncomeGrowth > 0 ? 
+            (goal.target - result.monthlyIncome) / monthlyIncomeGrowth : 
+            Infinity;
+          break;
+      }
+
+      return {
+        ...goal,
+        progress: Math.min(Math.max(progress, 0), 1),
+        timeToGoal: Math.max(timeToGoal, 0)
+      };
+    });
   }
 
   validateField(field, value) {
