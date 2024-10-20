@@ -12,7 +12,7 @@
 - [x] Create input fields for income, expenses, savings goals, and investment options
 - [x] Implement a dynamic budget allocation interface
 - [x] Design a net worth tracker component
-- [ ] Add more detailed categorization for assets and liabilities
+- [x] Add more detailed categorization for assets and liabilities
 - [ ] Implement a financial goal setting and tracking interface
 - [ ] Create a retirement planning dashboard
 

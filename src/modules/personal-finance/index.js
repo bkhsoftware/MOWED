@@ -8,12 +8,19 @@ export default class PersonalFinance extends ModuleInterface {
       'Housing', 'Transportation', 'Food', 'Utilities', 'Insurance', 
       'Healthcare', 'Debt Payments', 'Personal', 'Entertainment', 'Savings'
     ];
-    this.assetCategories = [
-      'Cash', 'Investments', 'Real Estate', 'Vehicles', 'Other Assets'
-    ];
-    this.liabilityCategories = [
-      'Mortgage', 'Car Loans', 'Student Loans', 'Credit Card Debt', 'Other Debts'
-    ];
+    this.assetCategories = {
+      'Liquid Assets': ['Cash', 'Checking Accounts', 'Savings Accounts'],
+      'Investments': ['Stocks', 'Bonds', 'Mutual Funds', 'ETFs', 'Retirement Accounts'],
+      'Real Estate': ['Primary Residence', 'Investment Properties'],
+      'Personal Property': ['Vehicles', 'Jewelry', 'Collectibles'],
+      'Other Assets': ['Business Ownership', 'Intellectual Property']
+    };
+    this.liabilityCategories = {
+      'Secured Debts': ['Mortgage', 'Auto Loans', 'Home Equity Loans'],
+      'Unsecured Debts': ['Credit Card Debt', 'Personal Loans'],
+      'Student Loans': ['Federal Student Loans', 'Private Student Loans'],
+      'Other Debts': ['Medical Debt', 'Tax Debt']
+    };
   }
 
   _solve(input) {
@@ -98,13 +105,13 @@ export default class PersonalFinance extends ModuleInterface {
       { name: 'investmentRate', type: 'number', label: 'Annual Investment Return Rate', min: 0, max: 1, step: 0.01 },
       { 
         name: 'assets', 
-        type: 'categoryValues', 
+        type: 'nestedCategoryValues', 
         label: 'Assets', 
         categories: this.assetCategories 
       },
       { 
         name: 'liabilities', 
-        type: 'categoryValues', 
+        type: 'nestedCategoryValues', 
         label: 'Liabilities', 
         categories: this.liabilityCategories 
       }

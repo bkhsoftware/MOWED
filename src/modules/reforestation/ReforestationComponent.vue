@@ -15,10 +15,10 @@
 <script>
 import { mapActions, mapGetters } from 'vuex';
 import Reforestation from './index';
-import ModuleForm from '../ModuleForm.vue';
-import ResultsDisplay from '../ResultsDisplay.vue';
+import ModuleForm from '../../components/ModuleForm.vue';
+import ResultsDisplay from '../../components/ResultsDisplay.vue';
 import ReforestationChart from './ReforestationChart.vue';
-import ChartComponent from '../ChartComponent.vue';
+import ChartComponent from '../../components/ChartComponent.vue';
 
 export default {
   name: 'ReforestationComponent',

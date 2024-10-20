@@ -1,10 +1,8 @@
-import ResultsDisplay from './ResultsDisplay.vue';
-
 <template>
   <div class="module-form">
     <h2>{{ module.getName() }}</h2>
     <p>{{ module.getDescription() }}</p>
-    <form @submit.prevent="solveOptimization">
+    <form @submit.prevent="submitForm">
       <div v-for="field in module.getInputFields()" :key="field.name">
         <label :for="field.name">{{ field.label }}</label>
         
@@ -12,47 +10,43 @@ import ResultsDisplay from './ResultsDisplay.vue';
                :id="field.name" 
                :type="field.type" 
                v-model="formData[field.name]"
-               :min="field.type === 'number' ? 0 : undefined"
+               :min="field.min"
+               :max="field.max"
+               :step="field.step"
                required>
         
-        <input v-else-if="field.type === 'date'"
-               :id="field.name"
-               type="date"
-               v-model="formData[field.name]"
-               required>
-
-        <select v-else-if="field.type === 'select'"
-                :id="field.name"
-                v-model="formData[field.name]"
-                required>
-          <option v-for="option in field.options" :key="option.value" :value="option.value">
-            {{ option.label }}
-          </option>
-        </select>        
-
-        <div v-else-if="field.type === 'array'">
-          <input 
-            v-for="(item, index) in formData[field.name]"
-            :key="index"
-            v-model="formData[field.name][index]"
-            :placeholder="`${field.label} ${index + 1}`"
-          >
-          <button @click.prevent="addArrayItem(field.name)">Add {{ field.label }}</button>
+        <div v-else-if="field.type === 'budgetAllocation'">
+          <div v-for="category in field.categories" :key="category" class="budget-category">
+            <label>{{ category }}</label>
+            <input 
+              type="number" 
+              v-model="formData[field.name][category]"
+              min="0"
+              max="100"
+              step="0.1"
+            >
+          </div>
+          <div class="total">Total: {{ getTotalAllocation(field.name) }}%</div>
         </div>
-        
-        <div v-else-if="field.type === 'object'">
-          <div v-for="(subField, subFieldName) in field.fields" :key="subFieldName">
-            <label :for="`${field.name}.${subFieldName}`">{{ subField.label }}</label>
-            <input :id="`${field.name}.${subFieldName}`"
-                   :type="subField.type"
-                   v-model="formData[field.name][subFieldName]"
-                   required>
+
+        <div v-else-if="field.type === 'nestedCategoryValues'">
+          <div v-for="(subcategories, maincategory) in field.categories" :key="maincategory" class="main-category">
+            <h4>{{ maincategory }}</h4>
+            <div v-for="subcategory in subcategories" :key="subcategory" class="subcategory-input">
+              <label>{{ subcategory }}</label>
+              <input 
+                type="number" 
+                v-model="formData[field.name][maincategory][subcategory]"
+                min="0"
+                step="0.01"
+              >
+            </div>
           </div>
         </div>
+        
       </div>
       <button type="submit">Optimize</button>
     </form>
-    <ResultsDisplay v-if="result" :result="result" />
   </div>
 </template>
 
@@ -61,9 +55,6 @@ import { mapActions } from 'vuex';
 
 export default {
   name: 'ModuleForm',
-  components: {
-    ResultsDisplay
-  },
   props: {
     module: {
       type: Object,
@@ -72,19 +63,11 @@ export default {
   },
   data() {
     return {
-      formData: {},
-      result: null
+      formData: {}
     };
   },
   methods: {
     ...mapActions(['saveModuleData']),
-    solveOptimization() {
-      this.result = this.module.solve(this.formData);
-      this.saveModuleData({
-        moduleName: this.module.getName(),
-        data: { formData: this.formData, result: this.result }
-      });
-    },
     submitForm() {
       try {
         this.module.validateInput(this.formData);
@@ -93,28 +76,58 @@ export default {
         alert(error.message);
       }
     },
-    addArrayItem(fieldName) {
-      if (!this.formData[fieldName]) {
-        this.$set(this.formData, fieldName, []);
-      }
-      this.formData[fieldName].push('');
+    getTotalAllocation(fieldName) {
+      return Object.values(this.formData[fieldName] || {}).reduce((sum, value) => sum + Number(value), 0).toFixed(1);
+    },
+    initializeFormData() {
+      this.module.getInputFields().forEach(field => {
+        if (field.type === 'budgetAllocation') {
+          this.formData[field.name] = {};
+          field.categories.forEach(category => {
+            this.formData[field.name][category] = 0;
+          });
+        } else if (field.type === 'nestedCategoryValues') {
+          this.formData[field.name] = {};
+          Object.keys(field.categories).forEach(maincategory => {
+            this.formData[field.name][maincategory] = {};
+            field.categories[maincategory].forEach(subcategory => {
+              this.formData[field.name][maincategory][subcategory] = 0;
+            });
+          });
+        } else {
+          this.formData[field.name] = '';
+        }
+      });
     }
   },
   created() {
-    this.module.getInputFields().forEach(field => {
-      if (field.type === 'array') {
-        this.$set(this.formData, field.name, []);
-      } else if (field.type === 'object') {
-        this.$set(this.formData, field.name, {});
-        Object.keys(field.fields).forEach(subFieldName => {
-          this.$set(this.formData[field.name], subFieldName, '');
-        });
-      } else if (field.type === 'date') {
-        this.$set(this.formData, field.name, new Date().toISOString().split('T')[0]);
-      } else {
-        this.$set(this.formData, field.name, '');
-      }
-    });
+    this.initializeFormData();
   }
 };
 </script>
+
+<style scoped>
+.module-form {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.budget-category, .subcategory-input {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.budget-category input, .subcategory-input input {
+  width: 100px;
+}
+
+.total {
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.main-category {
+  margin-top: 20px;
+}
+</style>

@@ -1,23 +1,6 @@
 <template>
   <div class="personal-finance">
-    <ModuleForm :module="module" @submit="handleSubmit">
-      <!-- ... (previous custom slots) -->
-      <template v-slot:categoryValues="{ field, value, updateValue }">
-        <div class="category-values">
-          <h3>{{ field.label }}</h3>
-          <div v-for="category in field.categories" :key="category" class="category-input">
-            <label>{{ category }}</label>
-            <input 
-              type="number" 
-              :value="value[category] || 0" 
-              @input="updateCategoryValue(field.name, category, $event.target.value, updateValue)"
-              min="0"
-              step="0.01"
-            >
-          </div>
-        </div>
-      </template>
-    </ModuleForm>
+    <ModuleForm :module="module" @submit="handleSubmit" />
     <ResultsDisplay v-if="result" :result="result" />
     <NetWorthTracker 
       v-if="result" 
@@ -36,9 +19,9 @@
 <script>
 import { mapActions, mapGetters } from 'vuex';
 import PersonalFinance from './index';
-import ModuleForm from '../ModuleForm.vue';
-import ResultsDisplay from '../ResultsDisplay.vue';
-import ChartComponent from '../ChartComponent.vue';
+import ModuleForm from '../../components/ModuleForm.vue';
+import ResultsDisplay from '../../components/ResultsDisplay.vue';
+import ChartComponent from '../../components/ChartComponent.vue';
 import NetWorthTracker from './NetWorthTracker.vue';
 
 export default {
@@ -92,6 +75,18 @@ export default {
     updateCategoryValue(fieldName, category, value, updateValue) {
       const newValue = Number(value);
       const updatedField = { ...this[fieldName], [category]: newValue };
+      this[fieldName] = updatedField;
+      updateValue(updatedField);
+    },
+    updateNestedCategoryValue(fieldName, maincategory, subcategory, value, updateValue) {
+      const newValue = Number(value);
+      const updatedField = { 
+        ...this[fieldName], 
+        [maincategory]: { 
+          ...this[fieldName][maincategory], 
+          [subcategory]: newValue 
+        } 
+      };
       this[fieldName] = updatedField;
       updateValue(updatedField);
     },
@@ -156,5 +151,24 @@ export default {
 .total {
   font-weight: bold;
   margin-top: 10px;
+}
+.nested-category-values {
+  margin-bottom: 20px;
+}
+
+.main-category {
+  margin-bottom: 15px;
+}
+
+.subcategory-input {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.subcategory-input input {
+  width: 100px;
+  margin: 0 10px;
 }
 </style>

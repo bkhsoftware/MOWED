@@ -25,7 +25,7 @@ MOWED aims to democratize access to optimization tools, bridging the gap between
 ## Technical Stack
 
 ### Frontend
-- **Framework**: Vue.js 3
+- **Framework**: Vue.js 3 and Composition API
 - **Build Tool**: Vite
 - **State Management**: Vuex 4
 - **UI Components**: Custom Vue components

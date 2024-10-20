@@ -14,9 +14,9 @@
 <script>
 import { mapActions, mapGetters } from 'vuex';
 import Education from './index';
-import ModuleForm from '../ModuleForm.vue';
-import ResultsDisplay from '../ResultsDisplay.vue';
-import ChartComponent from '../ChartComponent.vue';
+import ModuleForm from '../../components/ModuleForm.vue';
+import ResultsDisplay from '../../components/ResultsDisplay.vue';
+import ChartComponent from '../../components/ChartComponent.vue';
 
 export default {
   name: 'EducationComponent',

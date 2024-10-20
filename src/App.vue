@@ -13,6 +13,7 @@
 
 <script>
 import { mapGetters } from 'vuex';
+import ModuleForm from './components/ModuleForm.vue';
 import ModuleSelector from './components/ModuleSelector.vue';
 import PersonalFinanceComponent from './modules/personal-finance/PersonalFinanceComponent.vue';
 import EducationComponent from './modules/education/EducationComponent.vue';
@@ -22,6 +23,7 @@ import SmallBusinessComponent from './modules/small-business/SmallBusinessCompon
 export default {
   name: 'App',
   components: {
+    ModuleForm,
     ModuleSelector,
     PersonalFinanceComponent,
     EducationComponent,

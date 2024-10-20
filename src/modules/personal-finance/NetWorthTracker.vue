@@ -18,19 +18,25 @@
     <div class="net-worth-details">
       <div class="assets">
         <h3>Assets</h3>
-        <ul>
-          <li v-for="(value, category) in assets" :key="category">
-            {{ category }}: ${{ value.toFixed(2) }}
-          </li>
-        </ul>
+        <div v-for="(subcategories, maincategory) in assets" :key="maincategory">
+          <h4>{{ maincategory }}</h4>
+          <ul>
+            <li v-for="(value, subcategory) in subcategories" :key="subcategory">
+              {{ subcategory }}: ${{ value.toFixed(2) }}
+            </li>
+          </ul>
+        </div>
       </div>
       <div class="liabilities">
         <h3>Liabilities</h3>
-        <ul>
-          <li v-for="(value, category) in liabilities" :key="category">
-            {{ category }}: ${{ value.toFixed(2) }}
-          </li>
-        </ul>
+        <div v-for="(subcategories, maincategory) in liabilities" :key="maincategory">
+          <h4>{{ maincategory }}</h4>
+          <ul>
+            <li v-for="(value, subcategory) in subcategories" :key="subcategory">
+              {{ subcategory }}: ${{ value.toFixed(2) }}
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
     <ChartComponent
@@ -43,7 +49,7 @@
 </template>
 
 <script>
-import ChartComponent from '../ChartComponent.vue';
+import ChartComponent from '../../components/ChartComponent.vue';
 
 export default {
   name: 'NetWorthTracker',
@@ -77,10 +83,12 @@ export default {
   },
   computed: {
     totalAssets() {
-      return Object.values(this.assets).reduce((sum, value) => sum + value, 0);
+      return Object.values(this.assets).reduce((sum, subcategories) => 
+        sum + Object.values(subcategories).reduce((subsum, value) => subsum + value, 0), 0);
     },
     totalLiabilities() {
-      return Object.values(this.liabilities).reduce((sum, value) => sum + value, 0);
+      return Object.values(this.liabilities).reduce((sum, subcategories) => 
+        sum + Object.values(subcategories).reduce((subsum, value) => subsum + value, 0), 0);
     },
     netWorth() {
       return this.totalAssets - this.totalLiabilities;
