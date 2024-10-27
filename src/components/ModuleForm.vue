@@ -67,6 +67,7 @@
     </form>
   </div>
 </template>
+
 <script>
 import { mapActions } from 'vuex';
 
@@ -76,6 +77,10 @@ export default {
     module: {
       type: Object,
       required: true
+    },
+    initialValues: {
+      type: Object,
+      default: () => ({})
     }
   },
   data() {
@@ -90,7 +95,7 @@ export default {
         this.module.validateInput(this.formData);
         this.$emit('submit', this.formData);
       } catch (error) {
-        alert(error.message);
+        console.debug('Form validation message:', error.message);
       }
     },
     getTotalAllocation(fieldName) {
@@ -106,28 +111,42 @@ export default {
       this.formData.goals.splice(index, 1);
     },
     initializeFormData() {
+      // Start with empty form structure
+      this.formData = {};
+      
       this.module.getInputFields().forEach(field => {
         if (field.type === 'budgetAllocation') {
           this.formData[field.name] = {};
           field.categories.forEach(category => {
-            this.formData[field.name][category] = 0;
+            this.formData[field.name][category] = this.initialValues[field.name]?.[category] || 0;
           });
         } else if (field.type === 'nestedCategoryValues') {
           this.formData[field.name] = {};
           Object.keys(field.categories).forEach(maincategory => {
             this.formData[field.name][maincategory] = {};
             field.categories[maincategory].forEach(subcategory => {
-              this.formData[field.name][maincategory][subcategory] = 0;
+              this.formData[field.name][maincategory][subcategory] = 
+                this.initialValues[field.name]?.[maincategory]?.[subcategory] || 0;
             });
           });
         } else if (field.type === 'goals') {
-          this.formData[field.name] = [];
+          this.formData[field.name] = this.initialValues[field.name] || [];
         } else if (field.type === 'number') {
-          this.formData[field.name] = field.min || 0;
+          this.formData[field.name] = this.initialValues[field.name] ?? (field.min || 0);
         } else {
-          this.formData[field.name] = '';
+          this.formData[field.name] = this.initialValues[field.name] || '';
         }
       });
+    }
+  },
+  watch: {
+    initialValues: {
+      handler(newValues) {
+        if (Object.keys(newValues).length > 0) {
+          this.initializeFormData();
+        }
+      },
+      deep: true
     }
   },
   created() {

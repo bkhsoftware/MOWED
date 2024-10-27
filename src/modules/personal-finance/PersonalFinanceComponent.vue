@@ -1,7 +1,16 @@
 <template>
   <div class="personal-finance">
-    <ModuleForm :module="module" @submit="handleSubmit" />
+    <SampleDataLoader @load-sample="handleSampleData" />
+    <ModuleForm 
+      :module="module" 
+      :initial-values="formData"
+      @submit="handleSubmit" 
+    />
     <ResultsDisplay v-if="result" :result="result" />
+    <FinancialDashboardWrapper 
+      v-if="result" 
+      :result="result" 
+    />
     <NetWorthTracker 
       v-if="result" 
       :assets="result.assets" 
@@ -25,24 +34,49 @@
 </template>
 
 <script>
+import { ref } from 'vue';
 import { mapActions, mapGetters } from 'vuex';
 import PersonalFinance from './index';
+import SampleDataLoader from './SampleDataLoader.vue';
 import ModuleForm from '../../components/ModuleForm.vue';
 import ResultsDisplay from '../../components/ResultsDisplay.vue';
 import ChartComponent from '../../components/ChartComponent.vue';
 import NetWorthTracker from './NetWorthTracker.vue';
 import RetirementDashboard from './RetirementDashboard.vue';
 import GoalTracker from './GoalTracker.vue';
+import FinancialDashboardWrapper from './FinancialDashboardWrapper.vue';
 
 export default {
   name: 'PersonalFinanceComponent',
   components: {
+    SampleDataLoader,
     ModuleForm,
     ResultsDisplay,
     ChartComponent,
     NetWorthTracker,
     RetirementDashboard,
-    GoalTracker
+    GoalTracker,
+    FinancialDashboardWrapper
+  },
+  setup() {
+    const formData = ref({});
+    
+    // Your existing setup code...
+    
+    return {
+      formData,
+      // ... other return values ...
+    };
+  },
+  watch: {
+    formData: {
+      handler(newData) {
+        if (Object.keys(newData).length > 0) {
+          this.handleSubmit(newData);
+        }
+      },
+      deep: true
+    }
   },
   data() {
     return {
@@ -66,6 +100,21 @@ export default {
     }
   },
   methods: {
+    handleSampleData(sampleData) {
+      console.log('Received sample data:', sampleData); // Debug log
+      if (!sampleData.monthlyIncome) {
+        console.error('Missing monthly income in sample data');
+        return;
+      }
+      this.formData = { ...sampleData };
+      this.handleSubmit({
+        ...sampleData.personalInfo,
+        ...sampleData.currentFinances,
+        assets: sampleData.assets,
+        liabilities: sampleData.liabilities,
+        goals: sampleData.goals
+      });
+    },
     ...mapActions(['saveModuleData']),
     async handleSubmit(formData) {
       try {
@@ -79,7 +128,8 @@ export default {
         });
         this.updateBudgetChartData();
       } catch (error) {
-        alert(error.message);
+        // Instead of alert, log to console
+        console.debug('Calculation message:', error.message);
       }
     },
     updateBudgetAllocation(category, value, updateValue) {

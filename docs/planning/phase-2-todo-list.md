@@ -14,7 +14,7 @@
 - [x] Design a net worth tracker component
 - [x] Add more detailed categorization for assets and liabilities
 - [x] Implement a financial goal setting and tracking interface
-- [ ] Create a retirement planning dashboard
+- [x] Create a retirement planning dashboard
 
 ### Optimization Logic
 - [ ] Develop algorithm for optimal budget allocation

@@ -5,6 +5,23 @@ All notable changes to the MOWED project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] - 2024-10-27
+
+### Added
+- Sample data functionality for the Personal Finance module
+  - Added PersonalFinanceSampleData generator with realistic financial data
+  - Created SampleDataLoader component with loading state indicator
+  - Implemented sample data covering income, assets, liabilities, and goals
+  - Added 12 months of historical data generation
+
+### Changed
+- Enhanced ModuleForm to handle initial values and sample data population
+- Improved validation message handling for better user experience
+
+### Improved
+- Better demonstration capabilities through sample data
+- Enhanced testing capabilities with reproducible test data
+
 ## [0.2.3] - 2024-10-07
 
 ### Added
