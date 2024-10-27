@@ -5,6 +5,50 @@ All notable changes to the MOWED project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.6] - 2024-10-27
+
+### Added
+- Long-term financial projection model with:
+  - Monte Carlo simulation for uncertainty analysis
+  - Multiple scenario projections (base, optimistic, conservative)
+  - Confidence interval calculations
+  - Risk metrics and analysis
+  - Strategic recommendations based on projections
+
+### Changed
+- Refactored Personal Finance module for better maintainability:
+  - Split functionality into specialized components
+  - Created separate calculators for different financial aspects
+  - Improved separation of concerns
+  - Enhanced code organization and structure
+
+### Improved
+- Better modularity and testability of financial calculations
+- More sophisticated financial analysis capabilities
+- Cleaner and more maintainable codebase
+
+## [0.2.5] - 2024-10-27
+
+### Added
+- Advanced optimization algorithms for Personal Finance module:
+  - Budget optimization with customizable constraints and preferences
+  - Portfolio optimization using Modern Portfolio Theory
+  - Comprehensive investment recommendations based on risk tolerance
+  - Dynamic risk tolerance calculation considering multiple factors
+  - Detailed budget recommendations with specific rationales
+  - Asset allocation optimization with rebalancing suggestions
+  - Income and retirement goal tracking improvements
+
+### Changed
+- Enhanced Personal Finance module with more sophisticated financial calculations
+- Improved goal tracking with more detailed progress metrics
+- Updated budget categories with expanded recommendation system
+
+### Improved
+- More accurate retirement planning calculations
+- Better debt management recommendations
+- Enhanced investment portfolio diversification analysis
+
 ## [0.2.4] - 2024-10-27
 
 ### Added

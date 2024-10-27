@@ -20,7 +20,7 @@
 ### Optimization Logic
 - [x] Develop algorithm for optimal budget allocation
 - [x] Implement investment portfolio optimization
-- [ ] Create a long-term financial projection model
+- [x] Create a long-term financial projection model
 - [ ] Develop a debt repayment optimization algorithm
 - [ ] Implement a Monte Carlo simulation for retirement planning
 - [ ] Create a tax optimization component
