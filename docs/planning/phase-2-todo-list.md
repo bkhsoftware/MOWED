@@ -15,10 +15,11 @@
 - [x] Add more detailed categorization for assets and liabilities
 - [x] Implement a financial goal setting and tracking interface
 - [x] Create a retirement planning dashboard
+- [x] Sample data functionality
 
 ### Optimization Logic
-- [ ] Develop algorithm for optimal budget allocation
-- [ ] Implement investment portfolio optimization
+- [x] Develop algorithm for optimal budget allocation
+- [x] Implement investment portfolio optimization
 - [ ] Create a long-term financial projection model
 - [ ] Develop a debt repayment optimization algorithm
 - [ ] Implement a Monte Carlo simulation for retirement planning
