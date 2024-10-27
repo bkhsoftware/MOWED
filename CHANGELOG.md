@@ -5,6 +5,30 @@ All notable changes to the MOWED project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.7] - 2024-10-27
+
+### Added
+- Comprehensive tax optimization features in Personal Finance module:
+  - Tax-aware investment recommendations
+  - Advanced tax planning and projection tools
+  - Multi-year tax optimization strategies
+  - Sophisticated tax form components with nested structures
+  - Tax-specific validation and calculations
+  - Automatic tax rate detection and optimization suggestions
+
+### Changed
+- Enhanced Personal Finance module with extensive tax input fields:
+  - Filing status and dependent tracking
+  - Multiple income source management
+  - Tax-advantaged account optimization
+  - Deduction and credit tracking
+  - Tax planning preferences
+
+### Improved
+- More sophisticated tax-related UI components
+- Better tax data organization and validation
+- Enhanced user experience for complex tax inputs
+
 ## [0.2.6] - 2024-10-27
 
 ### Added

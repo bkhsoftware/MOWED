@@ -7,6 +7,7 @@ import {
 } from './config/categories';
 import { BudgetOptimizer } from './optimizers/BudgetOptimizer';
 import { PortfolioOptimizer } from './optimizers/PortfolioOptimizer';
+import { DebtOptimizer } from './optimizers/DebtOptimizer';
 import { RetirementCalculator } from './calculators/RetirementCalculator';
 import { RiskCalculator } from './calculators/RiskCalculator';
 import { GoalTracker } from './calculators/GoalTracker';
@@ -14,6 +15,8 @@ import { InputValidator } from './validators/InputValidator';
 import { BudgetRecommendations } from './recommendations/BudgetRecommendations';
 import { InvestmentRecommendations } from './recommendations/InvestmentRecommendations';
 import { FinancialProjector } from './calculators/FinancialProjector';
+import { DebtUtils } from './utils/DebtUtils';
+import { CashflowAnalyzer } from './analyzers/CashflowAnalyzer';
 
 export default class PersonalFinance extends ModuleInterface {
   constructor() {
@@ -23,6 +26,13 @@ export default class PersonalFinance extends ModuleInterface {
     this.liabilityCategories = liabilityCategories;
     this.validator = new InputValidator();
     this.goalTracker = new GoalTracker();
+    this.taxCategories = {
+      'Filing Status': ['Single', 'Married Filing Jointly', 'Married Filing Separately', 'Head of Household'],
+      'Tax-Advantaged Accounts': ['Traditional IRA', '401(k)', 'Roth IRA', 'HSA', '529 Plan'],
+      'Income Sources': ['Wages', 'Self-Employment', 'Investments', 'Rental Income', 'Other'],
+      'Tax Credits': ['Child Tax Credit', 'Earned Income Credit', 'Education Credits', 'Energy Credits'],
+      'Deductions': ['Mortgage Interest', 'Property Taxes', 'Charitable Contributions', 'Medical Expenses']
+    };
   }
 
 _solve(input) {
@@ -41,6 +51,18 @@ _solve(input) {
 
     // Optimize budget allocation
     const budgetOptimization = this.optimizeBudget(input);
+
+    // Optimize debt repayment
+    const debtOptimization = DebtOptimizer.optimize({
+      debts: DebtUtils.prepareDebtsForOptimization(input.liabilities),
+      monthlyPaymentCapacity: basicMetrics.availableSavings +
+        (input.monthlyIncome * (budgetOptimization.optimizedBudget['Debt Payments'] / 100)),
+      strategy: 'optimal',
+      minimumPayments: DebtUtils.calculateMinimumPayments(input.liabilities),
+      extraFunds: basicMetrics.availableSavings * 0.5,
+      riskTolerance,
+      cashflowStability: CashflowAnalyzer.analyzeCashflowStability(input).score
+    });
 
     // Track financial goals
     const goalProgress = this.goalTracker.trackGoals(input, basicMetrics);
@@ -71,6 +93,7 @@ _solve(input) {
       ...basicMetrics,
       retirementProjection,
       portfolioOptimization,
+      debtOptimization,
       goalProgress,
       financialProjections,
       ...recommendations,
@@ -212,11 +235,247 @@ _solve(input) {
       { name: 'yearsInRetirement', type: 'number', label: 'Expected Years in Retirement', min: 1, max: 50, step: 1 },
       { name: 'retirementSavings', type: 'number', label: 'Current Retirement Savings', min: 0, step: 100 },
       { name: 'monthlyRetirementContribution', type: 'number', label: 'Monthly Retirement Contribution', min: 0, step: 10 },
-      { name: 'desiredRetirementIncome', type: 'number', label: 'Desired Annual Retirement Income', min: 0, step: 1000 }
+      { name: 'desiredRetirementIncome', type: 'number', label: 'Desired Annual Retirement Income', min: 0, step: 1000 },
+
+      // Tax Information Section
+      {
+        name: 'taxInformation',
+        type: 'section',
+        label: 'Tax Information',
+        fields: [
+          {
+            name: 'filingStatus',
+            type: 'select',
+            label: 'Filing Status',
+            options: this.taxCategories['Filing Status'],
+            required: true
+          },
+          {
+            name: 'dependents',
+            type: 'number',
+            label: 'Number of Dependents',
+            min: 0,
+            step: 1
+          },
+          {
+            name: 'stateOfResidence',
+            type: 'select',
+            label: 'State of Residence',
+            options: this.getStatesList()
+          }
+        ]
+      },
+
+      // Income Sources Section
+      {
+        name: 'incomeSources',
+        type: 'section',
+        label: 'Income Sources',
+        fields: [
+          {
+            name: 'wagesIncome',
+            type: 'number',
+            label: 'Annual Wages',
+            min: 0,
+            step: 100
+          },
+          {
+            name: 'selfEmploymentIncome',
+            type: 'number',
+            label: 'Self-Employment Income',
+            min: 0,
+            step: 100
+          },
+          {
+            name: 'investmentIncome',
+            type: 'nestedIncome',
+            label: 'Investment Income',
+            categories: {
+              'Dividends': ['Qualified', 'Non-Qualified'],
+              'Interest': ['Taxable', 'Tax-Exempt'],
+              'Capital Gains': ['Short-Term', 'Long-Term']
+            }
+          },
+          {
+            name: 'rentalIncome',
+            type: 'number',
+            label: 'Rental Income',
+            min: 0,
+            step: 100
+          },
+          {
+            name: 'otherIncome',
+            type: 'number',
+            label: 'Other Income',
+            min: 0,
+            step: 100
+          }
+        ]
+      },
+
+      // Tax-Advantaged Accounts Section
+      {
+        name: 'taxAdvantaged',
+        type: 'section',
+        label: 'Tax-Advantaged Accounts',
+        fields: this.taxCategories['Tax-Advantaged Accounts'].map(account => ({
+          name: account.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+          type: 'accountDetails',
+          label: account,
+          fields: [
+            {
+              name: 'currentBalance',
+              type: 'number',
+              label: 'Current Balance',
+              min: 0,
+              step: 100
+            },
+            {
+              name: 'annualContribution',
+              type: 'number',
+              label: 'Annual Contribution',
+              min: 0,
+              step: 100
+            },
+            {
+              name: 'employerMatch',
+              type: 'number',
+              label: 'Employer Match %',
+              min: 0,
+              max: 100,
+              step: 0.1
+            }
+          ]
+        }))
+      },
+
+      // Deductions Section
+      {
+        name: 'deductions',
+        type: 'section',
+        label: 'Tax Deductions',
+        fields: this.taxCategories['Deductions'].map(deduction => ({
+          name: deduction.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+          type: 'deductionDetails',
+          label: deduction,
+          fields: [
+            {
+              name: 'amount',
+              type: 'number',
+              label: 'Amount',
+              min: 0,
+              step: 100
+            },
+            {
+              name: 'recurring',
+              type: 'boolean',
+              label: 'Recurring Annually'
+            }
+          ]
+        }))
+      },
+
+      // Tax Credits Section
+      {
+        name: 'taxCredits',
+        type: 'section',
+        label: 'Tax Credits',
+        fields: this.taxCategories['Tax Credits'].map(credit => ({
+          name: credit.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+          type: 'boolean',
+          label: credit
+        }))
+      },
+
+      // Tax Planning Preferences
+      {
+        name: 'taxPreferences',
+        type: 'section',
+        label: 'Tax Planning Preferences',
+        fields: [
+          {
+            name: 'riskTolerance',
+            type: 'select',
+            label: 'Tax Planning Risk Tolerance',
+            options: ['Conservative', 'Moderate', 'Aggressive'],
+            required: true
+          },
+          {
+            name: 'prioritizeCurrentYear',
+            type: 'boolean',
+            label: 'Prioritize Current Year Tax Savings'
+          },
+          {
+            name: 'considerRothConversion',
+            type: 'boolean',
+            label: 'Consider Roth Conversion Strategies'
+          },
+          {
+            name: 'harvestingPreference',
+            type: 'select',
+            label: 'Tax Loss Harvesting Preference',
+            options: ['None', 'Conservative', 'Moderate', 'Aggressive']
+          }
+        ]
+      }
+
+    ];
+  }
+
+  getStatesList() {
+    return [
+      'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado',
+      'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho',
+      'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana',
+      'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota',
+      'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada',
+      'New Hampshire', 'New Jersey', 'New Mexico', 'New York',
+      'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon',
+      'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota',
+      'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington',
+      'West Virginia', 'Wisconsin', 'Wyoming'
     ];
   }
 
   validateField(field, value) {
-    this.validator.validateField(field, value);
+    super.validateField(field, value);
+    
+    // Add tax-specific validations
+    switch (field.type) {
+      case 'accountDetails':
+        this.validateAccountDetails(field, value);
+        break;
+      case 'deductionDetails':
+        this.validateDeductionDetails(field, value);
+        break;
+      case 'nestedIncome':
+        this.validateNestedIncome(field, value);
+        break;
+    }
+  }
+
+  validateAccountDetails(field, value) {
+    if (value.annualContribution < 0) {
+      throw new Error(`${field.label} annual contribution cannot be negative`);
+    }
+    if (value.employerMatch < 0 || value.employerMatch > 100) {
+      throw new Error(`${field.label} employer match must be between 0 and 100%`);
+    }
+  }
+
+  validateDeductionDetails(field, value) {
+    if (value.amount < 0) {
+      throw new Error(`${field.label} amount cannot be negative`);
+    }
+  }
+
+  validateNestedIncome(field, value) {
+    Object.entries(value).forEach(([category, subcategories]) => {
+      Object.entries(subcategories).forEach(([subcategory, amount]) => {
+        if (amount < 0) {
+          throw new Error(`${category} - ${subcategory} amount cannot be negative`);
+        }
+      });
+    });
   }
 }

@@ -21,9 +21,11 @@
 - [x] Develop algorithm for optimal budget allocation
 - [x] Implement investment portfolio optimization
 - [x] Create a long-term financial projection model
-- [ ] Develop a debt repayment optimization algorithm
-- [ ] Implement a Monte Carlo simulation for retirement planning
-- [ ] Create a tax optimization component
+- [x] Develop a debt repayment optimization algorithm
+- [x] Implement a Monte Carlo simulation for retirement planning
+- [x] Create a tax optimization component
+  - [x] Add tax-related fields to the input form
+  - [ ] Update the _solve method to include tax optimization
 
 ### Data Visualization
 - [ ] Design an interactive budget pie chart
