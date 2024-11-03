@@ -6,15 +6,29 @@ export class BudgetOptimizer {
       savingsGoal,
       debtInfo,
       preferences = {},
-      constraints = {}
+      constraints = {},
+      taxConsiderations = {} // New parameter
     } = params;
 
-    // Default weights for different objectives
+    // Default weights with tax considerations
     const weights = {
       savingsWeight: preferences.savingsWeight || 0.4,
       debtWeight: preferences.debtWeight || 0.3,
-      lifestyleWeight: preferences.lifestyleWeight || 0.3
+      lifestyleWeight: preferences.lifestyleWeight || 0.3,
+      taxEfficiencyWeight: preferences.taxEfficiencyWeight || 0.2 // New weight
     };
+
+    // Calculate tax-adjusted saving potential
+    const taxAdjustedSavings = this.calculateTaxAdjustedSavings(
+      monthlyIncome, 
+      taxConsiderations
+    );
+
+    // Calculate tax-efficient debt payments
+    const taxEfficientDebtPayments = this.calculateTaxEfficientDebtPayments(
+      debtInfo,
+      taxConsiderations
+    );
 
     // Minimum percentages for essential categories
     const minPercentages = {
@@ -32,39 +46,242 @@ export class BudgetOptimizer {
       ...constraints.maximums
     };
 
-    // Calculate debt urgency factor (higher interest rates increase urgency)
-    const debtUrgencyFactor = calculateDebtUrgencyFactor(debtInfo);
+    // Calculate saving priority based on tax advantages
+    const savingsPriority = this.calculateSavingsPriority(
+      savingsGoal,
+      currentBudget.Savings,
+      taxConsiderations
+    );
 
-    // Calculate savings urgency factor based on progress towards savings goal
-    const savingsUrgencyFactor = calculateSavingsUrgencyFactor(savingsGoal, currentBudget.Savings);
-
-    // Adjust weights based on urgency factors
-    const adjustedWeights = adjustWeights(weights, debtUrgencyFactor, savingsUrgencyFactor);
+    // Adjust weights based on tax efficiency
+    const adjustedWeights = this.adjustWeightsForTaxEfficiency(
+      weights,
+      taxConsiderations,
+      savingsPriority
+    );
 
     // Initialize optimized budget with current allocations
     let optimizedBudget = { ...currentBudget };
 
     // Ensure minimum requirements are met first
-    optimizedBudget = enforceMinimumRequirements(optimizedBudget, minPercentages);
+    optimizedBudget = this.enforceMinimumRequirements(optimizedBudget, minPercentages);
 
-    // Optimize discretionary spending within constraints
-    optimizedBudget = optimizeDiscretionarySpending(
+    // Optimize tax-advantaged categories first
+    optimizedBudget = this.optimizeTaxAdvantaged(
+      optimizedBudget,
+      taxConsiderations,
+      monthlyIncome
+    );
+
+    // Optimize remaining discretionary spending
+    optimizedBudget = this.optimizeDiscretionarySpending(
       optimizedBudget,
       maxPercentages,
       adjustedWeights,
       monthlyIncome
     );
 
-    // Calculate and allocate remaining percentage to savings and debt payment
-    optimizedBudget = allocateRemaining(optimizedBudget, adjustedWeights);
+    // Allocate remaining to savings and debt with tax considerations
+    optimizedBudget = this.allocateRemaining(
+      optimizedBudget,
+      adjustedWeights,
+      taxConsiderations
+    );
 
     // Final validation to ensure total is 100%
-    optimizedBudget = normalizePercentages(optimizedBudget);
+    optimizedBudget = this.normalizePercentages(optimizedBudget);
 
     return {
       optimizedBudget,
-      metrics: calculateOptimizationMetrics(optimizedBudget, monthlyIncome, params)
+      metrics: this.calculateOptimizationMetrics(
+        optimizedBudget,
+        monthlyIncome,
+        params
+      ),
+      taxEfficiencyMetrics: this.calculateTaxEfficiencyMetrics(
+        optimizedBudget,
+        taxConsiderations,
+        monthlyIncome
+      )
     };
+  }
+
+  static calculateTaxAdjustedSavings(monthlyIncome, taxConsiderations) {
+    const annualIncome = monthlyIncome * 12;
+    const { 
+      marginalRate = 0.25,
+      retirementAccounts = {},
+      deductionLimit = Infinity
+    } = taxConsiderations;
+
+    // Calculate maximum tax-advantaged savings
+    const maxTaxAdvantaged = Object.values(retirementAccounts)
+      .reduce((sum, account) => sum + (account.contributionLimit || 0), 0);
+
+    // Calculate tax savings from maximum contributions
+    const potentialTaxSavings = Math.min(
+      maxTaxAdvantaged * marginalRate,
+      deductionLimit * marginalRate
+    );
+
+    return {
+      maxTaxAdvantaged,
+      potentialTaxSavings,
+      effectiveRate: 1 - (potentialTaxSavings / maxTaxAdvantaged)
+    };
+  }
+
+  static calculateTaxEfficientDebtPayments(debtInfo, taxConsiderations) {
+    const { marginalRate = 0.25 } = taxConsiderations;
+    const deductibleCategories = ['Mortgage', 'Student Loans'];
+
+    return Object.entries(debtInfo).reduce((acc, [debtType, debt]) => {
+      const isDeductible = deductibleCategories.some(category => 
+        debtType.includes(category)
+      );
+
+      const effectiveRate = isDeductible
+        ? debt.interestRate * (1 - marginalRate)
+        : debt.interestRate;
+
+      return {
+        ...acc,
+        [debtType]: {
+          ...debt,
+          effectiveRate,
+          priorityScore: this.calculateDebtPriorityScore(debt, effectiveRate)
+        }
+      };
+    }, {});
+  }
+
+  static calculateSavingsPriority(savingsGoal, currentSavingsRate, taxConsiderations) {
+    const {
+      retirementAccounts = {},
+      emergencyFundNeeded = false,
+      hsa = { eligible: false }
+    } = taxConsiderations;
+
+    // Calculate priority scores for different savings types
+    const priorities = {
+      employerMatch: this.calculateEmployerMatchPriority(retirementAccounts),
+      hsaPriority: this.calculateHSAPriority(hsa),
+      emergencyFund: emergencyFundNeeded ? 1 : 0,
+      generalSavings: this.calculateGeneralSavingsPriority(
+        savingsGoal,
+        currentSavingsRate
+      )
+    };
+
+    return this.normalizePriorities(priorities);
+  }
+
+  static calculateEmployerMatchPriority(retirementAccounts) {
+    return Object.values(retirementAccounts).reduce((maxPriority, account) => {
+      const matchRate = account.employerMatch?.rate || 0;
+      const matchLimit = account.employerMatch?.limit || 0;
+      const priority = matchRate * Math.min(1, matchLimit / 100);
+      return Math.max(maxPriority, priority);
+    }, 0);
+  }
+
+  static calculateHSAPriority(hsa) {
+    if (!hsa.eligible) return 0;
+    return hsa.employerContribution ? 0.8 : 0.6;
+  }
+
+  static calculateGeneralSavingsPriority(savingsGoal, currentRate) {
+    if (!savingsGoal) return 0.3;
+    const progressToGoal = currentRate / (savingsGoal / 100);
+    return Math.max(0.3, 1 - progressToGoal);
+  }
+
+  static normalizePriorities(priorities) {
+    const total = Object.values(priorities).reduce((sum, p) => sum + p, 0);
+    return Object.entries(priorities).reduce((norm, [key, value]) => ({
+      ...norm,
+      [key]: value / total
+    }), {});
+  }
+
+  static adjustWeightsForTaxEfficiency(weights, taxConsiderations, savingsPriority) {
+    const { marginalRate = 0.25 } = taxConsiderations;
+    
+    // Adjust weights based on tax marginal rate and savings priorities
+    const taxEfficiencyBoost = marginalRate * weights.taxEfficiencyWeight;
+    
+    return {
+      savingsWeight: weights.savingsWeight * (1 + taxEfficiencyBoost * savingsPriority.employerMatch),
+      debtWeight: weights.debtWeight * (1 - taxEfficiencyBoost * 0.5),
+      lifestyleWeight: weights.lifestyleWeight * (1 - taxEfficiencyBoost)
+    };
+  }
+
+  static optimizeTaxAdvantaged(budget, taxConsiderations, monthlyIncome) {
+    const adjusted = { ...budget };
+    const { retirementAccounts = {}, hsa = { eligible: false } } = taxConsiderations;
+
+    // Optimize retirement account contributions
+    Object.values(retirementAccounts).forEach(account => {
+      if (account.employerMatch) {
+        const minContribution = (account.employerMatch.minimum || 0) / 100;
+        adjusted.Savings = Math.max(adjusted.Savings, minContribution * 100);
+      }
+    });
+
+    // Optimize HSA if eligible
+    if (hsa.eligible) {
+      const hsaContribution = Math.min(
+        (hsa.contributionLimit || 0) / (12 * monthlyIncome) * 100,
+        adjusted.Healthcare
+      );
+      adjusted.Healthcare = Math.max(adjusted.Healthcare, hsaContribution);
+    }
+
+    return adjusted;
+  }
+
+  static calculateTaxEfficiencyMetrics(budget, taxConsiderations, monthlyIncome) {
+    const annualIncome = monthlyIncome * 12;
+    
+    return {
+      potentialTaxSavings: this.calculatePotentialTaxSavings(
+        budget,
+        taxConsiderations,
+        annualIncome
+      ),
+      taxAdvantageUtilization: this.calculateTaxAdvantageUtilization(
+        budget,
+        taxConsiderations,
+        annualIncome
+      ),
+      effectiveTaxRate: this.calculateEffectiveTaxRate(
+        budget,
+        taxConsiderations,
+        annualIncome
+      )
+    };
+  }
+
+  static calculatePotentialTaxSavings(budget, taxConsiderations, annualIncome) {
+    const { marginalRate = 0.25 } = taxConsiderations;
+    const savingsAmount = (budget.Savings / 100) * annualIncome;
+    return savingsAmount * marginalRate;
+  }
+
+  static calculateTaxAdvantageUtilization(budget, taxConsiderations, annualIncome) {
+    const { retirementAccounts = {} } = taxConsiderations;
+    const totalLimit = Object.values(retirementAccounts)
+      .reduce((sum, account) => sum + (account.contributionLimit || 0), 0);
+    
+    const projectedContribution = (budget.Savings / 100) * annualIncome;
+    return totalLimit > 0 ? Math.min(1, projectedContribution / totalLimit) : 0;
+  }
+
+  static calculateEffectiveTaxRate(budget, taxConsiderations, annualIncome) {
+    const { marginalRate = 0.25 } = taxConsiderations;
+    const taxableIncome = annualIncome * (1 - (budget.Savings / 100));
+    return marginalRate * (taxableIncome / annualIncome);
   }
 }
 

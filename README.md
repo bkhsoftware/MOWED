@@ -110,6 +110,163 @@ This structure is designed to keep the codebase organized and modular, allowing 
 - Custom module interface for creating new optimization modules
 - Dynamic module loading using Vue's component system
 
+### Complete file and folder tree
+
+MOWED
+.
+├── app.js
+├── CHANGELOG.md
+├── cypress.config.js
+├── dist
+├── docs
+│   ├── architecture
+│   │   ├── Desktop Application Concept for MOWED.md
+│   │   ├── Local PWA Architecture for MOWED.md
+│   │   └── Technical Specification.md
+│   ├── business_strategy
+│   │   └── MOWED Business Strategy
+│   ├── custom_solvers
+│   │   ├── Analysis of Assembly Language for Optimization Solver.md
+│   │   └── Custom Optimization Solver Concept.md
+│   ├── Documentation Guidelines.md
+│   ├── MODULE_SYSTEM.md
+│   ├── planning
+│   │   ├── Comprehensive Project Plan.md
+│   │   ├── detailed-implementation-plan-part-1.md
+│   │   ├── Module Plan.md
+│   │   ├── phase-2-todo-list.md
+│   │   ├── phase-4-todo-list.md
+│   │   ├── phase-5-todo-list.md
+│   │   ├── Project Roadmap.md
+│   │   └── unit-test-checklist.md
+│   ├── REFORESTATION_MODULE.md
+│   ├── research
+│   │   └── Types of Optimization Problems for MOWED.md
+│   ├── Transparency Policy.md
+│   └── web-site-content
+│       └── mission-roadmap-and-sustainability.md
+├── favicon-180x180.ico
+├── index.html
+├── jest.config.js
+├── jest.setup.js
+├── LICENSE.md
+├── logs
+├── package.json
+├── package-lock.json
+├── public
+│   ├── favicon.ico
+│   ├── img
+│   │   └── icons
+│   ├── index.html
+│   ├── manifest.json
+│   ├── offline.html
+│   └── service-worker.js
+├── README.md
+├── solver
+│   └── solver_core.cpp
+├── src
+│   ├── App.vue
+│   ├── assets
+│   │   └── main.css
+│   ├── components
+│   │   ├── ChartComponent.vue
+│   │   ├── ModuleForm.vue
+│   │   ├── ModuleSelector.vue
+│   │   ├── OnlineStatus.vue
+│   │   └── ResultsDisplay.vue
+│   ├── core
+│   │   ├── dataModel.js
+│   │   ├── EventBus.js
+│   │   ├── ModuleInterface.js
+│   │   ├── moduleLoader.js
+│   │   ├── ModuleRegistry.js
+│   │   └── ModuleSelector.vue
+│   ├── main.js
+│   ├── modules
+│   │   ├── education
+│   │   │   ├── EducationComponent.vue
+│   │   │   └── index.js
+│   │   ├── personal-finance
+│   │   │   ├── analyzers
+│   │   │   │   └── CashflowAnalyzer.js
+│   │   │   ├── calculators
+│   │   │   │   ├── FinancialProjector.js
+│   │   │   │   ├── GoalTracker.js
+│   │   │   │   ├── RetirementCalculator.js
+│   │   │   │   ├── RetirementMonteCarloSimulator.js
+│   │   │   │   └── RiskCalculator.js
+│   │   │   ├── components
+│   │   │   │   └── tax
+│   │   │   │       ├── NestedIncomeInput.vue
+│   │   │   │       └── TaxInformationForm.vue
+│   │   │   ├── config
+│   │   │   │   ├── categories.js
+│   │   │   │   └── constants.js
+│   │   │   ├── FinancialDashboardWrapper.vue
+│   │   │   ├── generators
+│   │   │   │   └── TaxPlanGenerator.js
+│   │   │   ├── GoalTracker.vue
+│   │   │   ├── index.js
+│   │   │   ├── NetWorthTracker.vue
+│   │   │   ├── optimizers
+│   │   │   │   ├── BudgetOptimizer.js
+│   │   │   │   ├── DebtOptimizer.js
+│   │   │   │   ├── PortfolioOptimizer.js
+│   │   │   │   └── TaxOptimizer.js
+│   │   │   ├── PersonalFinanceComponent.vue
+│   │   │   ├── PersonalFinanceSampleData.js
+│   │   │   ├── recommendations
+│   │   │   │   ├── BudgetRecommendations.js
+│   │   │   │   └── InvestmentRecommendations.js
+│   │   │   ├── RetirementDashboard.vue
+│   │   │   ├── SampleDataLoader.vue
+│   │   │   ├── utils
+│   │   │   │   └── DebtUtils.js
+│   │   │   └── validators
+│   │   │       └── InputValidator.js
+│   │   ├── reforestation
+│   │   │   ├── index.js
+│   │   │   ├── ReforestationChart.vue
+│   │   │   └── ReforestationComponent.vue
+│   │   └── small-business
+│   │       ├── index.js
+│   │       └── SmallBusinessComponent.vue
+│   ├── registerModules.js
+│   ├── store
+│   │   ├── index.js
+│   │   └── moduleStore.js
+│   └── utils
+│       ├── indexedDBAdapter.js
+│       ├── serializationUtil.js
+│       └── storage.js
+├── style.css
+├── TECHNICAL_GUIDELINES.md
+├── tests
+│   ├── e2e
+│   └── unit
+│       ├── App.spec.js
+│       ├── dataModel.spec.js
+│       ├── Education.spec.js
+│       ├── EventBus.spec.js
+│       ├── indexedDBAdapter.spec.js
+│       ├── ModuleForm.spec.js
+│       ├── ModuleInterface.spec.js
+│       ├── ModuleRegistry.spec.js
+│       ├── ModuleSelector.spec.js
+│       ├── moduleStore.spec.js
+│       ├── OnlineStatus.spec.js
+│       ├── PersonalFinance.spec.js
+│       ├── Reforestation.spec.js
+│       ├── registerModules.spec.js
+│       ├── serializationUtil.spec.js
+│       ├── serviceWorker.spec.js
+│       ├── setup.js
+│       ├── SmallBusiness.spec.js
+│       ├── storage.spec.js
+│       └── store.spec.js
+└── vite.config.js
+
+
 ## Getting Started
 
 ### Prerequisites
@@ -211,23 +368,26 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 
 ## Current Development Status
 
-As of version 0.2.7, we have made significant progress in Phase 2 of development:
+As of version 0.2.8, we have made significant progress in Phase 2 of development:
 
 - Partly implemented and enhanced four initial modules: Personal Finance, Education Resource Allocation, Reforestation Optimization, and Small Business Management
 - Advanced optimization features in Personal Finance module including:
   - Modern Portfolio Theory implementation
   - Advanced budget optimization
-  - Sophisticated retirement planning
-  - Comprehensive investment recommendations
+  - Sophisticated retirement planning with tax optimization
+  - Comprehensive investment recommendations with tax considerations
   - Long-term financial projections with Monte Carlo simulation
   - Multiple scenario analysis and risk assessment
   - Advanced tax optimization and planning
   - Tax-aware investment strategies
+  - Enhanced debt management with tax implications
+  - Improved retirement calculations with tax-efficient withdrawal strategies
 - Improved code architecture with:
   - Modular component structure
   - Specialized calculators and optimizers
   - Clear separation of concerns
   - Enhanced maintainability and testability
+  - Better integration between optimization components
 - Developed sophisticated UI components:
   - Complex nested form structures
   - Tax-specific input handling

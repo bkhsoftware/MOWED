@@ -7,27 +7,49 @@ export class FinancialProjector {
       scenarioCount = 3,
       inflationRate = 0.02,
       marketVolatility = 0.15,
-      simulationCount = 1000  // For Monte Carlo
+      simulationCount = 1000,  // For Monte Carlo
+      taxStrategies = {} // New parameter
     } = options;
 
-    // Generate base case and alternative scenarios
-    const scenarios = this.generateScenarios(scenarioCount, input);
+    const {
+      marginalRate = 0.25,
+      stateRate = 0,
+      filingStatus = 'single',
+      retirementAccounts = {},
+      taxableAccounts = {},
+      taxFreeAccounts = {},
+      itemizingDeductions = false,
+      anticipatedDeductions = {}
+    } = taxStrategies;
+
+    // Generate tax-aware base case and alternative scenarios
+    const scenarios = this.generateTaxAwareScenarios(
+      scenarioCount,
+      input,
+      taxStrategies
+    );
     
-    // Project each scenario
+    // Project each scenario with tax considerations
     const projections = scenarios.map(scenario => 
-      this.projectScenario(scenario, currentMetrics, {
-        years: projectionYears,
-        inflationRate,
-        marketVolatility
-      })
+      this.projectScenarioWithTax(
+        scenario,
+        currentMetrics,
+        {
+          years: projectionYears,
+          inflationRate,
+          marketVolatility,
+          taxStrategies
+        }
+      )
     );
 
-    // Run Monte Carlo simulation for uncertainty analysis
-    const monteCarloResults = this.runMonteCarloSimulation(
+    // Run Monte Carlo simulation for uncertainty analysis with tax awareness
+    const monteCarloResults = this.runMonteCarloSimulationWithTax(
       input,
       currentMetrics,
       simulationCount,
-      projectionYears
+      projectionYears,
+      taxStrategies
     );
 
     return {
@@ -36,16 +58,22 @@ export class FinancialProjector {
         description: scenarios[index].description,
         assumptions: scenarios[index].assumptions,
         projection,
-        keyMetrics: this.calculateScenarioMetrics(projection),
-        risks: this.identifyScenarioRisks(projection)
+        keyMetrics: this.calculateScenarioMetricsWithTax(projection, taxStrategies),
+        risks: this.identifyScenarioRisks(projection),
+        taxImplications: this.analyzeTaxImplications(projection, taxStrategies)
       })),
       monteCarloAnalysis: monteCarloResults,
-      summary: this.generateProjectionSummary(projections, monteCarloResults),
-      recommendations: this.generateStrategicRecommendations(projections, monteCarloResults)
+      summary: this.generateProjectionSummary(projections, monteCarloResults, taxStrategies),
+      taxStrategy: this.generateTaxStrategy(projections, taxStrategies),
+      recommendations: this.generateStrategicRecommendations(
+        projections,
+        monteCarloResults,
+        taxStrategies
+      )
     };
   }
 
-  static generateScenarios(count, input) {
+  static generateTaxAwareScenarios(count, input, taxStrategies) {
     const baseScenario = {
       name: 'Base Case',
       description: 'Expected trajectory based on current parameters',
@@ -53,33 +81,89 @@ export class FinancialProjector {
         incomeGrowthRate: input.incomeGrowthRate,
         investmentReturn: input.investmentRate,
         expenseGrowthRate: 0.02,  // Inflation rate
-        savingsRate: input.budgetAllocation.Savings
+        savingsRate: input.budgetAllocation.Savings,
+        taxAssumptions: this.generateBaseTaxAssumptions(input, taxStrategies)
       }
     };
 
     const optimisticScenario = {
       name: 'Optimistic Scenario',
-      description: 'Favorable economic conditions and career progression',
+      description: 'Favorable economic conditions and tax optimization',
       assumptions: {
         incomeGrowthRate: input.incomeGrowthRate * 1.5,
         investmentReturn: input.investmentRate * 1.2,
         expenseGrowthRate: 0.02,
-        savingsRate: input.budgetAllocation.Savings * 1.2
+        savingsRate: input.budgetAllocation.Savings * 1.2,
+        taxAssumptions: this.generateOptimisticTaxAssumptions(input, taxStrategies)
       }
     };
 
     const pessimisticScenario = {
       name: 'Conservative Scenario',
-      description: 'Challenging economic conditions and slower growth',
+      description: 'Challenging economic conditions and tax policy changes',
       assumptions: {
         incomeGrowthRate: Math.max(input.incomeGrowthRate * 0.5, 0.01),
         investmentReturn: Math.max(input.investmentRate * 0.7, 0.02),
         expenseGrowthRate: 0.03,
-        savingsRate: input.budgetAllocation.Savings * 0.8
+        savingsRate: input.budgetAllocation.Savings * 0.8,
+        taxAssumptions: this.generatePessimisticTaxAssumptions(input, taxStrategies)
       }
     };
 
     return [baseScenario, optimisticScenario, pessimisticScenario];
+  }
+
+  static generateBaseTaxAssumptions(input, taxStrategies) {
+    const { marginalRate, stateRate, filingStatus } = taxStrategies;
+    return {
+      marginalRate,
+      stateRate,
+      filingStatus,
+      taxBracketProgression: this.projectTaxBracketProgression(input, taxStrategies),
+      deductionUtilization: this.estimateDeductionUtilization(input, taxStrategies),
+      retirementAccountStrategy: this.generateRetirementAccountStrategy(input, taxStrategies)
+    };
+  }
+
+  static generateOptimisticTaxAssumptions(input, taxStrategies) {
+    const baseAssumptions = this.generateBaseTaxAssumptions(input, taxStrategies);
+    return {
+      ...baseAssumptions,
+      marginalRate: Math.max(baseAssumptions.marginalRate - 0.02, 0),
+      deductionUtilization: Math.min(baseAssumptions.deductionUtilization * 1.2, 1),
+      retirementAccountMaximization: true
+    };
+  }
+
+  static generatePessimisticTaxAssumptions(input, taxStrategies) {
+    const baseAssumptions = this.generateBaseTaxAssumptions(input, taxStrategies);
+    return {
+      ...baseAssumptions,
+      marginalRate: baseAssumptions.marginalRate + 0.02,
+      deductionUtilization: baseAssumptions.deductionUtilization * 0.8,
+      retirementAccountRestrictions: true
+    };
+  }
+
+  static projectScenarioWithTax(scenario, currentMetrics, params) {
+    const projection = [];
+    let currentYear = {
+      year: 0,
+      ...this.initializeYearMetricsWithTax(currentMetrics, scenario.assumptions.taxAssumptions)
+    };
+
+    for (let year = 1; year <= params.years; year++) {
+      const nextYear = this.projectNextYearWithTax(
+        currentYear,
+        scenario,
+        params,
+        year
+      );
+      projection.push(nextYear);
+      currentYear = nextYear;
+    }
+
+    return projection;
   }
 
   static projectScenario(scenario, currentMetrics, params) {
@@ -98,59 +182,393 @@ export class FinancialProjector {
     return projection;
   }
 
-  static initializeYearMetrics(currentMetrics) {
+  static initializeYearMetricsWithTax(currentMetrics, taxAssumptions) {
+    const baseMetrics = this.initializeYearMetrics(currentMetrics);
+    
     return {
-      income: currentMetrics.monthlyIncome * 12,
-      expenses: currentMetrics.expenses * 12,
-      savings: currentMetrics.availableSavings * 12,
-      assets: currentMetrics.totalAssets,
-      liabilities: currentMetrics.totalLiabilities,
-      netWorth: currentMetrics.netWorth,
-      investmentReturns: 0,
-      debtPayments: 0,
-      cashflow: 0
+      ...baseMetrics,
+      taxableIncome: this.calculateTaxableIncome(baseMetrics, taxAssumptions),
+      taxLiability: this.calculateTaxLiability(baseMetrics, taxAssumptions),
+      effectiveRate: this.calculateEffectiveRate(baseMetrics, taxAssumptions),
+      taxAdvantagedSavings: this.calculateTaxAdvantagedSavings(baseMetrics, taxAssumptions),
+      taxableInvestments: this.calculateTaxableInvestments(baseMetrics, taxAssumptions),
+      deductions: this.calculateDeductions(baseMetrics, taxAssumptions)
     };
   }
 
-  static projectNextYear(currentYear, scenario, params) {
-    const {
-      incomeGrowthRate,
-      investmentReturn,
-      expenseGrowthRate,
-      savingsRate
-    } = scenario.assumptions;
+  static projectNextYearWithTax(currentYear, scenario, params, yearIndex) {
+    const { taxAssumptions } = scenario.assumptions;
+    
+    // Calculate next year's income and taxes
+    const income = currentYear.income * (1 + scenario.assumptions.incomeGrowthRate);
+    const taxableIncome = this.calculateTaxableIncome({
+      ...currentYear,
+      income
+    }, taxAssumptions);
+    
+    const taxLiability = this.calculateTaxLiability({
+      ...currentYear,
+      income,
+      taxableIncome
+    }, taxAssumptions);
 
-    // Calculate next year's income and expenses
-    const income = currentYear.income * (1 + incomeGrowthRate);
-    const expenses = currentYear.expenses * (1 + expenseGrowthRate);
-    const savings = income * (savingsRate / 100);
-    
-    // Calculate investment returns
-    const investmentReturns = currentYear.assets * investmentReturn;
-    
-    // Calculate debt payments and remaining liabilities
-    const debtPayments = this.calculateDebtPayments(currentYear.liabilities);
-    const remainingLiabilities = Math.max(0, currentYear.liabilities - debtPayments);
-    
-    // Calculate new asset levels
-    const assets = currentYear.assets + savings + investmentReturns;
-    
-    // Calculate net worth and cash flow
-    const netWorth = assets - remainingLiabilities;
-    const cashflow = income - expenses - debtPayments;
+    // Calculate investment returns with tax implications
+    const investmentReturns = this.calculateTaxAwareInvestmentReturns(
+      currentYear,
+      scenario,
+      taxAssumptions
+    );
+
+    // Calculate tax-advantaged contributions
+    const taxAdvantagedContributions = this.calculateTaxAdvantagedContributions(
+      currentYear,
+      scenario,
+      taxAssumptions
+    );
+
+    // Update portfolio values considering taxes
+    const { 
+      taxableInvestments,
+      taxAdvantagedInvestments,
+      taxFreeInvestments
+    } = this.updatePortfolioValues(
+      currentYear,
+      investmentReturns,
+      taxAdvantagedContributions,
+      taxAssumptions
+    );
+
+    // Calculate RMDs if applicable
+    const rmds = this.calculateRequiredMinimumDistributions(
+      currentYear,
+      yearIndex,
+      taxAssumptions
+    );
 
     return {
       year: currentYear.year + 1,
       income,
-      expenses,
-      savings,
-      assets,
-      liabilities: remainingLiabilities,
-      netWorth,
-      investmentReturns,
-      debtPayments,
-      cashflow
+      taxableIncome,
+      taxLiability,
+      effectiveRate: taxLiability / income,
+      expenses: currentYear.expenses * (1 + scenario.assumptions.expenseGrowthRate),
+      savings: income * (scenario.assumptions.savingsRate / 100),
+      taxAdvantagedSavings: taxAdvantagedContributions.total,
+      taxableInvestments,
+      taxAdvantagedInvestments,
+      taxFreeInvestments,
+      totalInvestments: taxableInvestments + taxAdvantagedInvestments + taxFreeInvestments,
+      investmentReturns: investmentReturns.total,
+      rmds,
+      deductions: this.updateDeductions(currentYear.deductions, taxAssumptions, yearIndex),
+      netWorth: this.calculateNetWorth({
+        taxableInvestments,
+        taxAdvantagedInvestments,
+        taxFreeInvestments
+      }, currentYear.liabilities),
+      taxStrategy: this.generateYearlyTaxStrategy(currentYear, taxAssumptions, yearIndex)
     };
+  }
+
+  static calculateTaxAwareInvestmentReturns(currentYear, scenario, taxAssumptions) {
+    const { investmentReturn } = scenario.assumptions;
+    
+    // Calculate returns for each account type
+    const taxableReturns = this.calculateTaxableReturns(
+      currentYear.taxableInvestments,
+      investmentReturn,
+      taxAssumptions
+    );
+
+    const taxAdvantagedReturns = this.calculateTaxAdvantagedReturns(
+      currentYear.taxAdvantagedInvestments,
+      investmentReturn
+    );
+
+    const taxFreeReturns = this.calculateTaxFreeReturns(
+      currentYear.taxFreeInvestments,
+      investmentReturn
+    );
+
+    return {
+      taxableReturns,
+      taxAdvantagedReturns,
+      taxFreeReturns,
+      total: taxableReturns.afterTax + taxAdvantagedReturns + taxFreeReturns
+    };
+  }
+
+  static calculateTaxableReturns(amount, returnRate, taxAssumptions) {
+    const grossReturn = amount * returnRate;
+    const { dividendYield = 0.02, capitalGainsRate = returnRate - 0.02 } = taxAssumptions;
+
+    // Split returns into dividends and capital gains
+    const dividends = amount * dividendYield;
+    const capitalGains = amount * capitalGainsRate;
+
+    // Calculate tax on each component
+    const dividendTax = this.calculateDividendTax(dividends, taxAssumptions);
+    const capitalGainsTax = this.calculateCapitalGainsTax(capitalGains, taxAssumptions);
+
+    return {
+      gross: grossReturn,
+      dividends,
+      capitalGains,
+      tax: dividendTax + capitalGainsTax,
+      afterTax: grossReturn - (dividendTax + capitalGainsTax)
+    };
+  }
+
+  static generateTaxStrategy(projections, taxStrategies) {
+    return {
+      accountAllocation: this.recommendAccountAllocation(projections, taxStrategies),
+      withdrawalStrategy: this.generateWithdrawalStrategy(projections, taxStrategies),
+      rmdStrategy: this.generateRMDStrategy(projections, taxStrategies),
+      bracketManagement: this.generateBracketManagementStrategy(projections, taxStrategies),
+      conversionStrategy: this.generateConversionStrategy(projections, taxStrategies),
+      deductionStrategy: this.generateDeductionStrategy(projections, taxStrategies)
+    };
+  }
+
+  static generateStrategicRecommendations(projections, monteCarloResults, taxStrategies) {
+    const recommendations = [];
+
+    // Tax efficiency recommendations
+    const taxEfficiency = this.analyzeTaxEfficiency(projections, taxStrategies);
+    if (taxEfficiency.potentialSavings > 0) {
+      recommendations.push({
+        type: 'tax_optimization',
+        priority: this.calculateRecommendationPriority(taxEfficiency.potentialSavings),
+        suggestion: 'Optimize tax-advantaged account utilization',
+        impact: `Potential lifetime tax savings of $${taxEfficiency.potentialSavings.toFixed(2)}`,
+        actions: this.generateTaxOptimizationActions(taxEfficiency)
+      });
+    }
+
+    // Portfolio diversification recommendations
+    const diversification = this.analyzeDiversification(projections[0]);
+    if (diversification.score < 0.7) {
+      recommendations.push({
+        type: 'diversification',
+        priority: 'high',
+        suggestion: 'Improve portfolio diversification',
+        impact: 'Reduce risk and enhance long-term returns',
+        actions: this.generateDiversificationActions(diversification)
+      });
+    }
+
+    // Income stability recommendations
+    const incomeStability = this.analyzeIncomeStability(projections);
+    if (incomeStability.volatility > 0.2) {
+      recommendations.push({
+        type: 'income_stability',
+        priority: 'medium',
+        suggestion: 'Enhance income stability',
+        impact: 'Reduce income volatility and improve planning certainty',
+        actions: this.generateIncomeStabilityActions(incomeStability)
+      });
+    }
+
+    // Retirement readiness recommendations
+    const retirementMetrics = this.analyzeRetirementReadiness(projections, monteCarloResults);
+    if (retirementMetrics.readinessScore < 0.8) {
+      recommendations.push({
+        type: 'retirement_planning',
+        priority: 'high',
+        suggestion: 'Strengthen retirement preparation',
+        impact: 'Improve likelihood of comfortable retirement',
+        actions: this.generateRetirementActions(retirementMetrics)
+      });
+    }
+
+    return this.prioritizeRecommendations(recommendations);
+  }
+
+  static analyzeTaxEfficiency(projections, taxStrategies) {
+    const totalTaxPaid = projections.reduce((sum, projection) => 
+      sum + projection.reduce((yearSum, year) => yearSum + year.taxLiability, 0), 0);
+    
+    const optimalTaxPaid = this.calculateOptimalTaxScenario(projections, taxStrategies);
+    const potentialSavings = totalTaxPaid - optimalTaxPaid;
+
+    return {
+      currentEfficiency: optimalTaxPaid / totalTaxPaid,
+      potentialSavings,
+      opportunities: this.identifyTaxOpportunities(projections, taxStrategies)
+    };
+  }
+
+  static generateTaxOptimizationActions(taxEfficiency) {
+    return taxEfficiency.opportunities.map(opportunity => ({
+      action: opportunity.description,
+      impact: opportunity.potentialSavings,
+      timeline: opportunity.implementationPeriod,
+      requirements: opportunity.prerequisites
+    }));
+  }
+
+  static analyzeRetirementReadiness(projections, monteCarloResults) {
+    const baseProjection = projections[0];
+    const finalYear = baseProjection[baseProjection.length - 1];
+
+    return {
+      readinessScore: this.calculateReadinessScore(finalYear, monteCarloResults),
+      incomeReplacement: this.calculateIncomeReplacement(finalYear, baseProjection[0]),
+      savingsAdequacy: this.assessSavingsAdequacy(baseProjection),
+      riskAlignment: this.evaluateRiskAlignment(monteCarloResults)
+    };
+  }
+
+  static calculateReadinessScore(finalYear, monteCarloResults) {
+    const successWeight = 0.4;
+    const savingsWeight = 0.3;
+    const incomeWeight = 0.3;
+
+    return (
+      (monteCarloResults.probabilityOfSuccess / 100) * successWeight +
+      (finalYear.savings / finalYear.income) * savingsWeight +
+      (finalYear.investmentReturns / finalYear.expenses) * incomeWeight
+    );
+  }
+
+  static calculateIncomeReplacement(finalYear, initialYear) {
+    const replacementRatio = finalYear.income / initialYear.income;
+    return {
+      ratio: replacementRatio,
+      adequacy: replacementRatio >= 0.8 ? 'Adequate' : 'Insufficient',
+      gap: Math.max(0, 0.8 - replacementRatio) * initialYear.income
+    };
+  }
+
+  static assessSavingsAdequacy(projection) {
+    const savingsRate = projection.map(year => year.savings / year.income);
+    const averageSavingsRate = savingsRate.reduce((sum, rate) => sum + rate, 0) / 
+                              savingsRate.length;
+
+    return {
+      averageRate: averageSavingsRate,
+      trend: this.analyzeSavingsTrend(savingsRate),
+      sustainability: this.assessSavingsSustainability(projection)
+    };
+  }
+
+  static analyzeSavingsTrend(savingsRate) {
+    const trendLine = this.calculateTrendLine(savingsRate);
+    return {
+      slope: trendLine.slope,
+      direction: trendLine.slope > 0 ? 'Improving' : 'Declining',
+      consistency: this.calculateConsistency(savingsRate)
+    };
+  }
+
+  static calculateTrendLine(values) {
+    const n = values.length;
+    const xMean = (n - 1) / 2;
+    const yMean = values.reduce((sum, y) => sum + y, 0) / n;
+
+    const slope = values.reduce((sum, y, i) => 
+      sum + (i - xMean) * (y - yMean), 0) /
+      values.reduce((sum, _, i) => sum + Math.pow(i - xMean, 2), 0);
+
+    return {
+      slope,
+      intercept: yMean - slope * xMean
+    };
+  }
+
+  static calculateConsistency(values) {
+    const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+    const variance = values.reduce((sum, value) => 
+      sum + Math.pow(value - mean, 2), 0) / values.length;
+    return 1 - Math.sqrt(variance) / mean;
+  }
+
+  static assessSavingsSustainability(projection) {
+    const expenses = projection.map(year => year.expenses / year.income);
+    const savingsCapacity = projection.map(year => 
+      (year.income - year.expenses) / year.income);
+
+    return {
+      expenseRatio: expenses.reduce((sum, ratio) => sum + ratio, 0) / expenses.length,
+      savingsCapacity: savingsCapacity.reduce((sum, capacity) => sum + capacity, 0) / 
+                      savingsCapacity.length,
+      sustainability: this.calculateSustainabilityScore(expenses, savingsCapacity)
+    };
+  }
+
+  static calculateSustainabilityScore(expenses, savingsCapacity) {
+    const expenseTrend = this.calculateTrendLine(expenses);
+    const savingsTrend = this.calculateTrendLine(savingsCapacity);
+
+    return (expenseTrend.slope < 0 ? 1 : 0) * 0.4 + 
+           (savingsTrend.slope > 0 ? 1 : 0) * 0.6;
+  }
+
+  static evaluateRiskAlignment(monteCarloResults) {
+    return {
+      volatility: monteCarloResults.riskMetrics.volatility,
+      drawdownRisk: monteCarloResults.riskMetrics.maxDrawdown,
+      tailRisk: monteCarloResults.riskMetrics.tailRisk,
+      alignment: this.assessRiskAlignment(monteCarloResults)
+    };
+  }
+
+  static assessRiskAlignment(monteCarloResults) {
+    const volatilityScore = 1 - Math.min(monteCarloResults.riskMetrics.volatility / 0.2, 1);
+    const drawdownScore = 1 - Math.min(monteCarloResults.riskMetrics.maxDrawdown / 0.3, 1);
+    const successScore = monteCarloResults.probabilityOfSuccess / 100;
+
+    return {
+      score: (volatilityScore + drawdownScore + successScore) / 3,
+      category: this.getRiskCategory(volatilityScore, drawdownScore, successScore),
+      recommendations: this.generateRiskAlignmentRecommendations(
+        volatilityScore,
+        drawdownScore,
+        successScore
+      )
+    };
+  }
+
+  static getRiskCategory(volatility, drawdown, success) {
+    const score = (volatility + drawdown + success) / 3;
+    if (score > 0.8) return 'Well Aligned';
+    if (score > 0.6) return 'Moderately Aligned';
+    return 'Misaligned';
+  }
+
+  static generateRiskAlignmentRecommendations(volatility, drawdown, success) {
+    const recommendations = [];
+
+    if (volatility < 0.7) {
+      recommendations.push('Consider reducing portfolio volatility through diversification');
+    }
+    if (drawdown < 0.7) {
+      recommendations.push('Implement drawdown protection strategies');
+    }
+    if (success < 0.7) {
+      recommendations.push('Review and adjust financial goals for better probability of success');
+    }
+
+    return recommendations;
+  }
+
+  static calculateRecommendationPriority(impact) {
+    if (impact > 100000) return 'high';
+    if (impact > 50000) return 'medium';
+    return 'low';
+  }
+
+  static prioritizeRecommendations(recommendations) {
+    const priorityOrder = { high: 3, medium: 2, low: 1 };
+    
+    return recommendations.sort((a, b) => {
+      if (a.priority !== b.priority) {
+        return priorityOrder[b.priority] - priorityOrder[a.priority];
+      }
+      return typeof b.impact === 'string' ? 
+        0 : parseFloat(b.impact.replace(/[^0-9.-]+/g, "")) - 
+           parseFloat(a.impact.replace(/[^0-9.-]+/g, ""));
+    });
   }
 
   static runMonteCarloSimulation(input, currentMetrics, simulationCount, years) {

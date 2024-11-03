@@ -25,7 +25,7 @@
 - [x] Implement a Monte Carlo simulation for retirement planning
 - [x] Create a tax optimization component
   - [x] Add tax-related fields to the input form
-  - [ ] Update the _solve method to include tax optimization
+  - [x] Update the _solve method to include tax optimization
 
 ### Data Visualization
 - [ ] Design an interactive budget pie chart

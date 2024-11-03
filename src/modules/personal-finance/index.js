@@ -35,24 +35,51 @@ export default class PersonalFinance extends ModuleInterface {
     };
   }
 
-_solve(input) {
+  _solve(input) {
     // Validate all inputs
     this.validator.validateInput(input);
 
     // Calculate basic financial metrics
     const basicMetrics = this.calculateBasicMetrics(input);
 
-    // Calculate retirement projections
-    const retirementProjection = RetirementCalculator.calculate(input);
+    // Calculate tax optimization first as it affects other optimizations
+    const taxOptimization = TaxOptimizer.optimize({
+      income: input.monthlyIncome * 12,
+      filingStatus: input.taxInformation?.filingStatus || 'single',
+      deductions: this.prepareTaxDeductions(input),
+      retirementAccounts: this.prepareRetirementAccounts(input),
+      investmentAccounts: input.assets.Investments || {},
+      capitalGains: this.prepareCapitalGains(input),
+      age: input.age,
+      stateOfResidence: input.taxInformation?.stateOfResidence,
+      selfEmployed: Boolean(input.incomeSources?.selfEmploymentIncome)
+    });
+
+    // Calculate retirement projections with tax-aware considerations
+    const retirementProjection = RetirementCalculator.calculate({
+      ...input,
+      taxOptimization: taxOptimization.strategies
+    });
 
     // Calculate risk tolerance and portfolio recommendations
     const riskTolerance = RiskCalculator.calculateRiskTolerance(input);
-    const portfolioOptimization = this.optimizePortfolio(input, riskTolerance);
+    const portfolioOptimization = this.optimizePortfolio(input, riskTolerance, taxOptimization.strategies.investments);
 
-    // Optimize budget allocation
-    const budgetOptimization = this.optimizeBudget(input);
+    // Optimize budget allocation considering tax implications
+    const budgetOptimization = BudgetOptimizer.optimize({
+      monthlyIncome: basicMetrics.monthlyIncome,
+      currentBudget: input.budgetAllocation,
+      savingsGoal: input.savingsGoal,
+      debtInfo: DebtUtils.prepareDebtsForOptimization(input.liabilities),
+      preferences: {
+        savingsWeight: 0.4,
+        debtWeight: 0.3,
+        lifestyleWeight: 0.3
+      },
+      taxConsiderations: taxOptimization.strategies.timing
+    });
 
-    // Optimize debt repayment
+    // Optimize debt repayment with tax considerations
     const debtOptimization = DebtOptimizer.optimize({
       debts: DebtUtils.prepareDebtsForOptimization(input.liabilities),
       monthlyPaymentCapacity: basicMetrics.availableSavings +
@@ -61,11 +88,15 @@ _solve(input) {
       minimumPayments: DebtUtils.calculateMinimumPayments(input.liabilities),
       extraFunds: basicMetrics.availableSavings * 0.5,
       riskTolerance,
-      cashflowStability: CashflowAnalyzer.analyzeCashflowStability(input).score
+      cashflowStability: CashflowAnalyzer.analyzeCashflowStability(input).score,
+      taxConsiderations: taxOptimization.strategies.timing
     });
 
-    // Track financial goals
-    const goalProgress = this.goalTracker.trackGoals(input, basicMetrics);
+    // Track financial goals with tax awareness
+    const goalProgress = this.goalTracker.trackGoals(input, {
+      ...basicMetrics,
+      taxSavings: taxOptimization.savings
+    });
 
     // Generate long-term financial projections
     const financialProjections = FinancialProjector.generateProjections(
@@ -76,34 +107,131 @@ _solve(input) {
         scenarioCount: 3,
         inflationRate: 0.02,
         marketVolatility: 0.15,
-        simulationCount: 1000
+        simulationCount: 1000,
+        taxStrategies: taxOptimization.strategies
       }
     );
 
     // Generate comprehensive recommendations
-    const recommendations = this.generateRecommendations(
-      input,
-      budgetOptimization,
-      portfolioOptimization,
-      financialProjections
-    );
+    const recommendations = {
+      budget: BudgetRecommendations.generate(
+        input.budgetAllocation,
+        budgetOptimization.optimizedBudget
+      ),
+      investment: InvestmentRecommendations.generate(
+        portfolioOptimization,
+        input
+      ),
+      tax: taxOptimization.recommendations,
+      longTerm: financialProjections.recommendations
+    };
 
     // Compile complete result
     const result = {
       ...basicMetrics,
+      taxOptimization,
       retirementProjection,
       portfolioOptimization,
       debtOptimization,
       goalProgress,
       financialProjections,
-      ...recommendations,
+      recommendations,
       date: new Date().toISOString().split('T')[0]
     };
 
     // Emit results for state management
-    this.emitResults(result);
+    EventBus.emit('updateModuleState', {
+      moduleName: this.getName(),
+      moduleState: { lastCalculation: result }
+    });
 
     return result;
+  }
+
+  prepareTaxDeductions(input) {
+    const deductions = [];
+    
+    // Add itemized deductions if provided
+    if (input.deductions) {
+      Object.entries(input.deductions).forEach(([type, details]) => {
+        deductions.push({
+          type,
+          amount: details.amount,
+          recurring: details.recurring,
+          eligible: true,
+          certainty: 1,
+          bunchable: this.isDeductionBunchable(type)
+        });
+      });
+    }
+
+    // Add retirement contributions as deductions
+    if (input.taxAdvantaged) {
+      Object.entries(input.taxAdvantaged).forEach(([account, details]) => {
+        if (details.annualContribution > 0) {
+          deductions.push({
+            type: 'retirement_contribution',
+            amount: details.annualContribution,
+            accountType: account,
+            eligible: true,
+            certainty: 1,
+            bunchable: false
+          });
+        }
+      });
+    }
+
+    return deductions;
+  }
+
+  prepareRetirementAccounts(input) {
+    const accounts = {};
+    
+    if (input.taxAdvantaged) {
+      Object.entries(input.taxAdvantaged).forEach(([account, details]) => {
+        accounts[account] = {
+          balance: details.currentBalance,
+          contribution: details.annualContribution,
+          employerMatch: details.employerMatch,
+          type: this.getAccountType(account)
+        };
+      });
+    }
+
+    return accounts;
+  }
+
+  prepareCapitalGains(input) {
+    const gains = [];
+    const investments = input.assets.Investments || {};
+    
+    // Add realized gains/losses
+    if (input.investmentIncome?.['Capital Gains']) {
+      Object.entries(input.investmentIncome['Capital Gains']).forEach(([term, amount]) => {
+        gains.push({
+          amount,
+          realized: true,
+          longTerm: term === 'Long-Term',
+          year: new Date().getFullYear()
+        });
+      });
+    }
+
+    return gains;
+  }
+
+  isDeductionBunchable(type) {
+    return ['charitable_contributions', 'medical_expenses', 'property_taxes'].includes(type);
+  }
+
+  getAccountType(account) {
+    const types = {
+      traditional_ira: 'traditional',
+      roth_ira: 'roth',
+      '401k': 'traditional',
+      hsa: 'hsa'
+    };
+    return types[account.toLowerCase()] || 'traditional';
   }
 
   calculateBasicMetrics(input) {

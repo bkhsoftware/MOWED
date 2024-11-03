@@ -5,6 +5,31 @@ All notable changes to the MOWED project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.8] - 2024-10-28
+
+### Added
+- Enhanced calculators in Personal Finance module:
+  - Comprehensive retirement planning with Monte Carlo simulation
+  - Advanced tax-aware retirement calculation algorithms
+  - Dynamic tax strategy generation and optimization
+  - Sophisticated debt optimization with tax considerations
+  - Long-term financial projections with multi-scenario analysis
+  - Risk assessment and recommendation systems
+
+### Changed
+- Improved calculation engines with better tax integration:
+  - RetirementCalculator now includes tax-optimized withdrawal strategies
+  - DebtOptimizer considers tax implications in repayment strategies
+  - PortfolioOptimizer implements tax-efficient asset allocation
+  - FinancialProjector includes tax-aware scenario analysis
+  
+### Improved
+- More sophisticated recommendation generation across all calculators
+- Enhanced tax efficiency calculations and analysis
+- Better integration between different optimization components
+- More accurate long-term projections with tax considerations
+- More detailed risk analysis and mitigation strategies
+
 ## [0.2.7] - 2024-10-27
 
 ### Added
