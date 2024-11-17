@@ -106,6 +106,44 @@ This structure is designed to keep the codebase organized and modular, allowing 
 ### Data Visualization
 - Chart.js for creating interactive and responsive charts
 
+The Personal Finance module includes comprehensive financial visualizations:
+
+- **Budget Analysis**
+  - Interactive pie chart for budget allocation
+  - Category-wise breakdown with percentages
+  - Dynamic updates based on user input
+
+- **Savings Tracking**
+  - Goal progress bars with completion estimates
+  - Monthly contribution tracking
+  - Time-to-goal projections
+
+- **Net Worth Analysis**
+  - Historical net worth line graph
+  - Asset and liability tracking over time
+  - Customizable time period views
+
+- **Investment Portfolio**
+  - Donut chart for asset allocation
+  - Detailed breakdown by category
+  - Risk analysis and recommendations
+
+- **Debt Management**
+  - Strategy comparison charts
+  - Payoff timeline visualization
+  - Interest savings analysis
+
+- **Retirement Planning**
+  - Monte Carlo simulation projections
+  - Multiple scenario analysis
+  - Success probability tracking
+
+Each visualization component is:
+- Responsive and interactive
+- Updates in real-time
+- Provides detailed tooltips and legends
+- Includes relevant metrics and recommendations
+
 ### Module System
 - Custom module interface for creating new optimization modules
 - Dynamic module loading using Vue's component system

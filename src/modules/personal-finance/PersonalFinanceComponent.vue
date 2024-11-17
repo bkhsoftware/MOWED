@@ -2,213 +2,221 @@
   <div class="personal-finance">
     <SampleDataLoader @load-sample="handleSampleData" />
     <ModuleForm 
-      :module="module" 
+      :module="module"
       :initial-values="formData"
       @submit="handleSubmit" 
     />
+
+    <BudgetPieChart
+      v-if="result && result.budgetAllocation"
+      :budgetAllocation="result.budgetAllocation"
+      class="mt-6"
+    />
+
+    <SavingsGoalProgress
+      v-if="result && result.goals"
+      :goals="result.goals"
+      :monthlyIncome="result.monthlyIncome"
+      class="mt-6"
+    />
+
+    <NetWorthGraph
+      v-if="result && result.historicalData"
+      :historicalData="result.historicalData"
+      class="mt-6"
+    />
+
+    <PortfolioAllocationChart
+      v-if="result && result.assets?.Investments"
+      :portfolio="result.assets.Investments"
+      :expectedReturn="result.investmentMetrics?.expectedReturn"
+      :volatility="result.investmentMetrics?.volatility"
+      class="mt-6"
+    />
+
+    <DebtStrategyComparison
+      v-if="result && result.debts"
+      :debts="result.debts"
+      :monthlyPaymentCapacity="result.monthlyPaymentCapacity"
+      class="mt-6"
+    />
+
+    <RetirementProjectionGraph
+      v-if="result && result.retirementProjection"
+      :currentAge="result.age"
+      :retirementAge="result.retirementAge"
+      :currentSavings="result.currentSavings"
+      :monthlyContribution="result.monthlyContribution"
+      :desiredRetirementIncome="result.desiredRetirementIncome"
+      :projections="result.retirementProjection"
+      class="mt-6"
+    />
+
     <ResultsDisplay v-if="result" :result="result" />
+
     <FinancialDashboardWrapper 
       v-if="result" 
       :result="result" 
     />
+
     <NetWorthTracker 
       v-if="result" 
       :assets="result.assets" 
       :liabilities="result.liabilities" 
     />
+
     <RetirementDashboard
       v-if="result && result.retirementProjection"
       :retirementProjection="result.retirementProjection"
     />
+
     <GoalTracker 
       v-if="result && result.goalProgress" 
       :goals="result.goalProgress" 
     />
-    <ChartComponent 
-      v-if="budgetChartData"
-      :type="budgetChartType"
-      :data="budgetChartData"
-      :options="chartOptions"
-    />
   </div>
 </template>
 
-<script>
-import { ref } from 'vue';
-import { mapActions, mapGetters } from 'vuex';
+<script setup>
+import { ref, computed, watch, onMounted } from 'vue';
+import { useStore } from 'vuex';
 import PersonalFinance from './index';
 import SampleDataLoader from './SampleDataLoader.vue';
 import ModuleForm from '../../components/ModuleForm.vue';
 import ResultsDisplay from '../../components/ResultsDisplay.vue';
-import ChartComponent from '../../components/ChartComponent.vue';
 import NetWorthTracker from './NetWorthTracker.vue';
 import RetirementDashboard from './RetirementDashboard.vue';
 import GoalTracker from './GoalTracker.vue';
 import FinancialDashboardWrapper from './FinancialDashboardWrapper.vue';
+import BudgetPieChart from './components/BudgetPieChart.vue';
+import SavingsGoalProgress from './components/SavingsGoalProgress.vue';
+import NetWorthGraph from './components/NetWorthGraph.vue';
+import PortfolioAllocationChart from './components/PortfolioAllocationChart.vue';
+import DebtStrategyComparison from './components/DebtStrategyComparison.vue';
+import RetirementProjectionGraph from './components/RetirementProjectionGraph.vue';
 
-export default {
-  name: 'PersonalFinanceComponent',
-  components: {
-    SampleDataLoader,
-    ModuleForm,
-    ResultsDisplay,
-    ChartComponent,
-    NetWorthTracker,
-    RetirementDashboard,
-    GoalTracker,
-    FinancialDashboardWrapper
-  },
-  setup() {
-    const formData = ref({});
-    
-    // Your existing setup code...
-    
-    return {
-      formData,
-      // ... other return values ...
-    };
-  },
-  watch: {
-    formData: {
-      handler(newData) {
-        if (Object.keys(newData).length > 0) {
-          this.handleSubmit(newData);
-        }
-      },
-      deep: true
+// Initialize store
+const store = useStore();
+
+// Reactive state
+const module = new PersonalFinance();
+const formData = ref({});
+const result = ref(null);
+const budgetAllocation = ref({});
+const assets = ref({});
+const liabilities = ref({});
+
+// Computed properties
+const totalAllocation = computed(() => {
+  return Object.values(budgetAllocation.value)
+    .reduce((sum, value) => sum + Number(value), 0)
+    .toFixed(1);
+});
+
+// Methods
+const handleSampleData = (sampleData) => {
+  console.log('Received sample data:', sampleData);
+  if (!sampleData.monthlyIncome) {
+    console.error('Missing monthly income in sample data');
+    return;
+  }
+  formData.value = { ...sampleData };
+  handleSubmit({
+    ...sampleData.personalInfo,
+    ...sampleData.currentFinances,
+    assets: sampleData.assets,
+    liabilities: sampleData.liabilities,
+    goals: sampleData.goals
+  });
+};
+
+const handleSubmit = async (formValues) => {
+  try {
+    result.value = await module.solve({
+      ...formValues,
+      incomeGrowthRate: formValues.incomeGrowthRate || 0
+    });
+
+    await store.dispatch('saveModuleData', {
+      moduleName: module.getName(),
+      data: { result: result.value }
+    });
+
+    // Update local state
+    if (result.value) {
+      budgetAllocation.value = result.value.budgetAllocation;
+      assets.value = result.value.assets;
+      liabilities.value = result.value.liabilities;
     }
-  },
-  data() {
-    return {
-      module: new PersonalFinance(),
-      result: null,
-      budgetChartType: 'pie',
-      budgetChartData: null,
-      chartOptions: {
-        responsive: true,
-        maintainAspectRatio: false,
-      },
-      budgetAllocation: {},
-      assets: {},
-      liabilities: {}
-    };
-  },
-  computed: {
-    ...mapGetters(['getModuleData']),
-    totalAllocation() {
-      return Object.values(this.budgetAllocation).reduce((sum, value) => sum + Number(value), 0).toFixed(1);
-    }
-  },
-  methods: {
-    handleSampleData(sampleData) {
-      console.log('Received sample data:', sampleData); // Debug log
-      if (!sampleData.monthlyIncome) {
-        console.error('Missing monthly income in sample data');
-        return;
-      }
-      this.formData = { ...sampleData };
-      this.handleSubmit({
-        ...sampleData.personalInfo,
-        ...sampleData.currentFinances,
-        assets: sampleData.assets,
-        liabilities: sampleData.liabilities,
-        goals: sampleData.goals
-      });
-    },
-    ...mapActions(['saveModuleData']),
-    async handleSubmit(formData) {
-      try {
-        this.result = await this.module.solve({
-          ...formData,
-          incomeGrowthRate: formData.incomeGrowthRate || 0
-        });
-        this.saveModuleData({
-          moduleName: this.module.getName(),
-          data: { result: this.result }
-        });
-        this.updateBudgetChartData();
-      } catch (error) {
-        // Instead of alert, log to console
-        console.debug('Calculation message:', error.message);
-      }
-    },
-    updateBudgetAllocation(category, value, updateValue) {
-      const newValue = Number(value);
-      this.budgetAllocation = { ...this.budgetAllocation, [category]: newValue };
-      updateValue(this.budgetAllocation);
-    },
-    updateCategoryValue(fieldName, category, value, updateValue) {
-      const newValue = Number(value);
-      const updatedField = { ...this[fieldName], [category]: newValue };
-      this[fieldName] = updatedField;
-      updateValue(updatedField);
-    },
-    updateNestedCategoryValue(fieldName, maincategory, subcategory, value, updateValue) {
-      const newValue = Number(value);
-      const updatedField = { 
-        ...this[fieldName], 
-        [maincategory]: { 
-          ...this[fieldName][maincategory], 
-          [subcategory]: newValue 
-        } 
-      };
-      this[fieldName] = updatedField;
-      updateValue(updatedField);
-    },
-    updateBudgetChartData() {
-      const allocation = this.result.budgetAllocation;
-      this.budgetChartData = {
-        labels: Object.keys(allocation),
-        datasets: [{
-          data: Object.values(allocation),
-          backgroundColor: [
-            'rgba(255, 99, 132, 0.6)',
-            'rgba(54, 162, 235, 0.6)',
-            'rgba(255, 206, 86, 0.6)',
-            'rgba(75, 192, 192, 0.6)',
-            'rgba(153, 102, 255, 0.6)',
-            'rgba(255, 159, 64, 0.6)',
-            'rgba(199, 199, 199, 0.6)',
-            'rgba(83, 102, 255, 0.6)',
-            'rgba(40, 159, 64, 0.6)',
-            'rgba(210, 199, 199, 0.6)',
-          ],
-          borderWidth: 1
-        }]
-      };
-    }
-  },
-  created() {
-    const savedData = this.getModuleData(this.module.getName());
-    if (savedData && savedData.result) {
-      this.result = savedData.result;
-      this.budgetAllocation = savedData.result.budgetAllocation;
-      this.assets = savedData.result.assets;
-      this.liabilities = savedData.result.liabilities;
-      this.updateBudgetChartData();
-    }
+  } catch (error) {
+    console.debug('Calculation message:', error.message);
   }
 };
+
+const updateCategoryValue = (fieldName, category, value, updateValue) => {
+  const newValue = Number(value);
+  const updatedField = { 
+    ...fieldName === 'budgetAllocation' ? budgetAllocation.value : 
+      fieldName === 'assets' ? assets.value : liabilities.value
+  };
+  updatedField[category] = newValue;
+  updateValue(updatedField);
+};
+
+const updateNestedCategoryValue = (fieldName, maincategory, subcategory, value, updateValue) => {
+  const newValue = Number(value);
+  const field = fieldName === 'assets' ? assets.value : liabilities.value;
+  const updatedField = {
+    ...field,
+    [maincategory]: {
+      ...field[maincategory],
+      [subcategory]: newValue
+    }
+  };
+  updateValue(updatedField);
+};
+
+// Watch for changes in formData
+watch(formData, (newData) => {
+  if (Object.keys(newData).length > 0) {
+    handleSubmit(newData);
+  }
+}, { deep: true });
+
+// Load saved data on component mount
+onMounted(() => {
+  const savedData = store.getters.getModuleData(module.getName());
+  if (savedData?.result) {
+    result.value = savedData.result;
+    budgetAllocation.value = savedData.result.budgetAllocation;
+    assets.value = savedData.result.assets;
+    liabilities.value = savedData.result.liabilities;
+  }
+});
 </script>
 
 <style scoped>
 .personal-finance {
   max-width: 800px;
   margin: 0 auto;
+  padding: 20px;
 }
 
-.budget-allocation, .category-values {
+.budget-allocation,
+.category-values {
   margin-bottom: 20px;
 }
 
-.budget-category, .category-input {
+.budget-category,
+.category-input {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
 }
 
-.budget-category input, .category-input input {
+.budget-category input,
+.category-input input {
   width: 100px;
   margin: 0 10px;
 }
@@ -217,6 +225,7 @@ export default {
   font-weight: bold;
   margin-top: 10px;
 }
+
 .nested-category-values {
   margin-bottom: 20px;
 }

@@ -5,6 +5,33 @@ All notable changes to the MOWED project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.9] - 2024-10-29
+
+### Added
+- New financial visualizations in Personal Finance module:
+  - Interactive budget pie chart with detailed breakdown
+  - Savings goal progress bars with completion estimates
+  - Net worth over time line graph with asset/liability tracking
+  - Investment portfolio allocation donut chart with analytics
+  - Debt repayment strategy comparison chart with three strategies
+  - Retirement savings projection graph with Monte Carlo simulation
+
+### Enhanced
+- Improved data visualization capabilities with:
+  - Time period filters for historical data
+  - Interactive tooltips and legends
+  - Responsive chart layouts
+  - Detailed financial metrics and analysis
+  - Strategy comparisons and recommendations
+  - Risk analysis and progress tracking
+
+### Improved
+- Better financial data presentation and analysis
+- More sophisticated visualization components
+- Enhanced user experience with interactive charts
+- Clearer financial insights and recommendations
+- Better component organization and reusability
+
 ## [0.2.8] - 2024-10-28
 
 ### Added

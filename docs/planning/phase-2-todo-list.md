@@ -28,12 +28,12 @@
   - [x] Update the _solve method to include tax optimization
 
 ### Data Visualization
-- [ ] Design an interactive budget pie chart
-- [ ] Implement a savings goal progress bar
-- [ ] Create a net worth over time line graph
-- [ ] Develop an investment portfolio allocation chart
-- [ ] Design a debt repayment strategy comparison chart
-- [ ] Create a retirement savings projection graph
+- [x] Design an interactive budget pie chart
+- [x] Implement a savings goal progress bar
+- [x] Create a net worth over time line graph
+- [x] Develop an investment portfolio allocation chart
+- [x] Design a debt repayment strategy comparison chart
+- [x] Create a retirement savings projection graph
 
 ### Advanced Features
 - [ ] Implement historical net worth tracking and visualization
@@ -42,6 +42,10 @@
 - [ ] Implement an income tax estimation feature
 - [ ] Develop a comprehensive financial report generation tool
 - [ ] Create data import/export functionality for financial information
+
+### Refining
+- [ ] Make sure entire codebase uses the recommended Composition API for consistency.
+- [ ] Make visualization components appear only if relevant
 
 ### Testing
 - [ ] Write unit tests for all optimization functions
