@@ -36,8 +36,8 @@
 - [x] Create a retirement savings projection graph
 
 ### Advanced Features
-- [ ] Implement historical net worth tracking and visualization
-- [ ] Develop a financial health recommendation system
+- [x] Implement historical net worth tracking and visualization
+- [x] Develop a financial health recommendation system
 - [ ] Create future net worth projection tools with scenario modeling
 - [ ] Implement an income tax estimation feature
 - [ ] Develop a comprehensive financial report generation tool

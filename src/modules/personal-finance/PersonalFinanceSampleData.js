@@ -5,26 +5,91 @@ export class PersonalFinanceSampleData {
     const monthlyIncome = 5000;
     const currentDate = new Date();
     
-    // Generate 12 months of historical data
+    // Generate 12 months of historical data with more detailed tracking
     const historicalData = Array.from({ length: 12 }).map((_, index) => {
       const date = addMonths(currentDate, -11 + index);
       const monthStr = format(date, 'MMM');
       const baseIncrease = 1 + (index * 0.015); // 1.5% monthly growth
       
+      // Calculate assets with growth rates
+      const assets = {
+        'Liquid Assets': {
+          'Cash': 5000 * (1 + (index * 0.001)), // 0.1% monthly growth
+          'Checking Accounts': 3000,
+          'Savings Accounts': 15000 * (1 + (index * 0.002)) // 0.2% monthly growth
+        },
+        'Investments': {
+          'Stocks': 25000 * (1 + (index * 0.02)), // 2% monthly growth
+          'Bonds': 10000 * (1 + (index * 0.005)), // 0.5% monthly growth
+          'Mutual Funds': 15000 * (1 + (index * 0.015)), // 1.5% monthly growth
+          'ETFs': 20000 * (1 + (index * 0.018)), // 1.8% monthly growth
+          'Retirement Accounts': 50000 * (1 + (index * 0.016)) // 1.6% monthly growth
+        },
+        'Real Estate': {
+          'Primary Residence': 300000 * (1 + (index * 0.005)) // 0.5% monthly growth
+        },
+        'Personal Property': {
+          'Vehicles': 25000 * (1 - (index * 0.005)), // 0.5% monthly depreciation
+          'Jewelry': 5000,
+          'Collectibles': 2000 * (1 + (index * 0.003)) // 0.3% monthly appreciation
+        },
+        'Other Assets': {
+          'Business Ownership': 0,
+          'Intellectual Property': 0
+        }
+      };
+
+      // Calculate liabilities with paydown and growth rates
+      const liabilities = {
+        'Secured Debts': {
+          'Mortgage': 250000 * (1 - (index * 0.002)), // 0.2% monthly paydown
+          'Auto Loans': 15000 * (1 - (index * 0.015)), // 1.5% monthly paydown
+          'Home Equity Loans': 0
+        },
+        'Unsecured Debts': {
+          'Credit Card Debt': Math.max(0, 2000 * (1 - (index * 0.05))), // 5% monthly paydown
+          'Personal Loans': Math.max(0, 5000 * (1 - (index * 0.03))) // 3% monthly paydown
+        },
+        'Student Loans': {
+          'Federal Student Loans': 20000 * (1 - (index * 0.004)), // 0.4% monthly paydown
+          'Private Student Loans': 0
+        },
+        'Other Debts': {
+          'Medical Debt': 0,
+          'Tax Debt': 0
+        }
+      };
+
+      // Calculate totals
+      const totalAssets = Object.values(assets).reduce(
+        (sum, category) => sum + Object.values(category).reduce((s, v) => s + v, 0),
+        0
+      );
+
+      const totalLiabilities = Object.values(liabilities).reduce(
+        (sum, category) => sum + Object.values(category).reduce((s, v) => s + v, 0),
+        0
+      );
+
       return {
         date,
         month: monthStr,
         income: monthlyIncome * baseIncrease,
         expenses: monthlyIncome * 0.7 * (1 + (index * 0.01)),
         savings: monthlyIncome * 0.3 * baseIncrease,
-        investments: 20000 * (1 + (index * 0.02))
+        investments: 20000 * (1 + (index * 0.02)),
+        assets: totalAssets,
+        liabilities: totalLiabilities,
+        netWorth: totalAssets - totalLiabilities,
+        assetBreakdown: assets,
+        liabilityBreakdown: liabilities
       };
     });
 
-    // Create the complete form data structure matching ModuleForm fields
-    return {
+    // Create the complete form data structure
+    const baseData = {
       // Basic financial info
-      monthlyIncome: monthlyIncome,
+      monthlyIncome,
       investmentRate: 0.07,
       savingsGoal: 100000,
       incomeGrowthRate: 3,
@@ -43,7 +108,7 @@ export class PersonalFinanceSampleData {
         Savings: 5
       },
 
-      // Asset categories matching the module structure
+      // Note: assets and liabilities will be overwritten with latest historical data
       assets: {
         'Liquid Assets': {
           'Cash': 5000,
@@ -71,7 +136,7 @@ export class PersonalFinanceSampleData {
         }
       },
 
-      // Liability categories matching the module structure
+      // Note: these will also be overwritten with latest historical data
       liabilities: {
         'Secured Debts': {
           'Mortgage': 250000,
@@ -92,7 +157,23 @@ export class PersonalFinanceSampleData {
         }
       },
 
-      // Financial goals
+      // Retirement planning fields
+      age: 30,
+      retirementAge: 65,
+      yearsInRetirement: 30,
+      retirementSavings: 50000,
+      monthlyRetirementContribution: 500,
+      desiredRetirementIncome: 80000
+    };
+
+    // Use the latest values from historical data for current assets and liabilities
+    const latestData = historicalData[historicalData.length - 1];
+    
+    return {
+      ...baseData,
+      assets: latestData.assetBreakdown,
+      liabilities: latestData.liabilityBreakdown,
+      historicalData, // Add historical data to the return object
       goals: [
         {
           name: "Emergency Fund",
@@ -107,7 +188,7 @@ export class PersonalFinanceSampleData {
         {
           name: "Debt Free",
           type: "debt_reduction",
-          target: 292000
+          target: latestData.liabilities // Use current total liabilities
         },
         {
           name: "Income Goal",
@@ -115,8 +196,7 @@ export class PersonalFinanceSampleData {
           target: 8000
         }
       ],
-
-      // Retirement planning fields
+      // Keep existing retirement planning fields
       age: 30,
       retirementAge: 65,
       yearsInRetirement: 30,
@@ -126,20 +206,42 @@ export class PersonalFinanceSampleData {
     };
   }
 
+  // Keep existing getNetWorthHistory method but enhance it
   static getNetWorthHistory(data) {
-    return data.historicalData.map(month => {
-      const totalAssets = Object.values(data.assets).reduce(
-        (sum, category) => sum + Object.values(category).reduce((s, v) => s + v, 0),
-        0
-      );
-      const totalLiabilities = Object.values(data.liabilities).reduce(
-        (sum, category) => sum + Object.values(category).reduce((s, v) => s + v, 0),
-        0
-      );
-      return {
-        date: month.date,
-        netWorth: totalAssets - totalLiabilities
-      };
-    });
+    if (data.historicalData) {
+      return data.historicalData.map(entry => ({
+        date: entry.date,
+        netWorth: entry.netWorth,
+        assets: entry.assets,
+        liabilities: entry.liabilities
+      }));
+    }
+    
+    // Fallback to calculating from current data if no history
+    return [{
+      date: new Date(),
+      netWorth: this.calculateNetWorth(data.assets, data.liabilities),
+      assets: this.calculateTotalAssets(data.assets),
+      liabilities: this.calculateTotalLiabilities(data.liabilities)
+    }];
+  }
+
+  // Helper methods for calculations
+  static calculateNetWorth(assets, liabilities) {
+    return this.calculateTotalAssets(assets) - this.calculateTotalLiabilities(liabilities);
+  }
+
+  static calculateTotalAssets(assets) {
+    return Object.values(assets).reduce(
+      (sum, category) => sum + Object.values(category).reduce((s, v) => s + v, 0),
+      0
+    );
+  }
+
+  static calculateTotalLiabilities(liabilities) {
+    return Object.values(liabilities).reduce(
+      (sum, category) => sum + Object.values(category).reduce((s, v) => s + v, 0),
+      0
+    );
   }
 }

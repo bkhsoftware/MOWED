@@ -5,7 +5,10 @@ export default {
   }),
   mutations: {
     setModuleState(state, { moduleName, moduleState }) {
-      state.moduleStates[moduleName] = moduleState;
+      state.moduleStates[moduleName] = {
+        ...state.moduleStates[moduleName],
+        ...moduleState
+      };
     }
   },
   actions: {

@@ -7,6 +7,23 @@
       @submit="handleSubmit" 
     />
 
+    <div class="mt-6">
+      <FinancialHealthDashboard
+        v-if="result?.healthAnalysis"
+        :analysis="result.healthAnalysis"
+      />
+    </div>
+
+    <div class="mt-6">
+      <HistoricalNetWorthTracker 
+        v-if="historicalData.length > 0"
+        :data="historicalData"
+      />
+      <p v-else class="text-gray-500 text-center">
+        No historical data available yet. Complete calculations to start tracking net worth over time.
+      </p>
+    </div>
+
     <BudgetPieChart
       v-if="result && result.budgetAllocation"
       :budgetAllocation="result.budgetAllocation"
@@ -81,6 +98,8 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import PersonalFinance from './index';
+import FinancialHealthDashboard from './components/FinancialHealthDashboard.vue';
+import HistoricalNetWorthTracker from './components/HistoricalNetWorthTracker.vue';
 import SampleDataLoader from './SampleDataLoader.vue';
 import ModuleForm from '../../components/ModuleForm.vue';
 import ResultsDisplay from '../../components/ResultsDisplay.vue';
@@ -105,6 +124,11 @@ const result = ref(null);
 const budgetAllocation = ref({});
 const assets = ref({});
 const liabilities = ref({});
+
+const historicalData = computed(() => {
+  const moduleState = store.getters.getModuleState(module.getName());
+  return moduleState?.historicalData || [];
+});
 
 // Computed properties
 const totalAllocation = computed(() => {
@@ -139,7 +163,10 @@ const handleSubmit = async (formValues) => {
 
     await store.dispatch('saveModuleData', {
       moduleName: module.getName(),
-      data: { result: result.value }
+      data: { 
+        result: result.value,
+        historicalData: result.value.historicalData 
+      }
     });
 
     // Update local state

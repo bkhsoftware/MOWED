@@ -112,6 +112,17 @@ export default class PersonalFinance extends ModuleInterface {
       }
     );
 
+    // Add financial health analysis
+    const healthAnalysis = FinancialHealthAnalyzer.analyzeFinancialHealth(input, {
+      ...basicMetrics,
+      historicalData: currentState?.historicalData || [],
+      taxOptimization,
+      portfolioOptimization,
+      debtOptimization,
+      goalProgress,
+      financialProjections
+    });
+
     // Generate comprehensive recommendations
     const recommendations = {
       budget: BudgetRecommendations.generate(
@@ -136,16 +147,45 @@ export default class PersonalFinance extends ModuleInterface {
       goalProgress,
       financialProjections,
       recommendations,
+      healthAnalysis,
       date: new Date().toISOString().split('T')[0]
     };
 
-    // Emit results for state management
+    // Store historical data point
     EventBus.emit('updateModuleState', {
       moduleName: this.getName(),
-      moduleState: { lastCalculation: result }
+      moduleState: { 
+        lastCalculation: result,
+        historicalData: this.updateHistoricalData(result)
+      }
     });
 
     return result;
+  }
+
+  updateHistoricalData(result) {
+    // Get existing historical data from store
+    const currentState = store.getters.getModuleState(this.getName());
+    const historicalData = currentState?.historicalData || [];
+
+    // Add new data point
+    const newDataPoint = {
+      date: result.date,
+      netWorth: result.netWorth,
+      assets: result.totalAssets,
+      liabilities: result.totalLiabilities
+    };
+
+    // Keep last 365 days of data
+    const updatedHistory = [...historicalData, newDataPoint]
+      .filter(entry => {
+        const entryDate = new Date(entry.date);
+        const yearAgo = new Date();
+        yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+        return entryDate >= yearAgo;
+      });
+
+    return updatedHistory;
   }
 
   prepareTaxDeductions(input) {
